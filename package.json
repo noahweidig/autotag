@@ -5,7 +5,7 @@
   "description": "Autotag – Automatically assign tags to Zotero items using LLMs.",
   "config": {
     "addonName": "Autotag",
-    "addonID": "autotag@LilyKun064",
+    "addonID": "autotag@noahweidig",
     "addonRef": "autotag",
     "addonInstance": "Autotag",
     "prefsPrefix": "extensions.zotero.autotag"
