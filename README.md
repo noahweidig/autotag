@@ -143,7 +143,7 @@ Once the auto-tagging process is done, a window will pop up to show you tags sel
 
 ## Demo
 
-https://github.com/LilyKun064/Autotag_zotero_plugin/blob/main/assets/Autotag.mp4
+https://github.com/noahweidig/zot-tag-smith/blob/main/assets/Autotag.mp4
 
 ## What Autotag Uses
 

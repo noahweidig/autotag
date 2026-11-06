@@ -12,12 +12,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/LilyKun064/zotero_autotagging.git"
+    "url": "git+https://github.com/noahweidig/zot-tag-smith.git"
   },
   "author": "Chenkun (CJ) Jiang",
-  "homepage": "https://github.com/LilyKun064/zotero_autotagging#readme",
+  "homepage": "https://github.com/noahweidig/zot-tag-smith#readme",
   "bugs": {
-    "url": "https://github.com/LilyKun064/zotero_autotagging/issues"
+    "url": "https://github.com/noahweidig/zot-tag-smith/issues"
   },
   "license": "AGPL-3.0-or-later",
   "scripts": {
