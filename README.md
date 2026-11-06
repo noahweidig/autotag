@@ -232,4 +232,3 @@ It comes from the experience of managing large literature collections where manu
 
 If that resonates with you, you are exactly the audience this plugin was built for.
 
-P.S.: the black cat icon is my black cat Jesse, who contributed to this project by stepping onto my keyboards repeatedly while I was working. Hope you like him, too. 

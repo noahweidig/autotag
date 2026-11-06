@@ -14,8 +14,8 @@
     ]
   },
   "icons": {
-    "48": "content/icons/Jesse.png",
-    "96": "content/icons/Jesse.png"
+    "48": "content/icons/autotag-48.png",
+    "96": "content/icons/autotag.png"
   },
   "applications": {
     "zotero": {

@@ -29,7 +29,7 @@ import { getLLMProvider } from "./llmproviders";
 type LLMItemTags = { key: string; tags: string[] };
 
 let running = false;
-const ICON = "chrome://autotag/content/icons/Jesse.png";
+const ICON = "chrome://autotag/content/icons/autotag.png";
 const debug = (msg: string) => (Zotero as any).debug?.(`[Autotag] ${msg}`);
 const verbose = (msg: string) => {
   if (isDebugEnabled()) debug(msg);

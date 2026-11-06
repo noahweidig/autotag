@@ -44,7 +44,7 @@ async function onStartup(): Promise<void> {
       scripts: [rootURI + "content/preferences.js"],
       stylesheets: [rootURI + "content/preferences.css"],
       label: "Autotag",
-      image: rootURI + "content/icons/Jesse.png",
+      image: rootURI + "content/icons/autotag.png",
     });
   } catch (e) {
     debug(`preference pane registration failed: ${String(e)}`);
