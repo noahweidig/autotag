@@ -1,7 +1,7 @@
 {
   "name": "zotero-autotag",
   "type": "module",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "description": "Autotag – Automatically assign tags to Zotero items using LLMs.",
   "config": {
     "addonName": "Autotag",

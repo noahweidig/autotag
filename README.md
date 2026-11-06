@@ -10,7 +10,7 @@ It is built for people who rely on Zotero every day and have reached the point w
 ---
 ## What's NEW
 
-### v8.0.0
+### v8.0.1 (new logo) and v8.0.0
 - **Settings live in Zotero's preferences** (Zotero > Settings > Autotag). The chain of popup dialogs is gone and every change saves instantly.
 - New providers: **Anthropic (Claude)** and **Custom OpenAI-compatible** (LM Studio, vLLM, Groq, etc.). Ollama URL is configurable.
 - **Test connection** button loads the live model list for your provider.
