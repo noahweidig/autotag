@@ -112,58 +112,6 @@ export function getInt(name: string, fallback: number, min = 0): number {
   return Number.isFinite(n) && n >= min ? Math.floor(n) : fallback;
 }
 
-/* ---------- migration from the old dialog-based settings ---------- */
-
-/**
- * Old versions stored some values non-globally (extra "extensions.zotero."
- * prefix) and kept custom model IDs in separate prefs. Fold them in once.
- */
-export function migrateLegacyPrefs(): void {
-  try {
-    if (getBool("migrated", false)) return;
-
-    const legacy = (name: string): unknown => {
-      try {
-        return Zotero.Prefs.get(PREF_BRANCH + name);
-      } catch {
-        return undefined;
-      }
-    };
-    const copy = (name: string) => {
-      const v = legacy(name);
-      if (v !== undefined && v !== null && v !== "") {
-        setPrefRaw(name, v as any);
-      }
-    };
-
-    copy("llmProvider");
-    for (const p of ["openai", "gemini", "deepseek", "openrouter", "local"]) {
-      copy(`model.${p}`);
-      const custom = getStr(`customModel.${p}`).trim();
-      if (custom) {
-        setPrefRaw(`model.${p}`, custom);
-        clearPrefRaw(`customModel.${p}`);
-      }
-    }
-    for (const n of [
-      "includeTitle",
-      "includeCreators",
-      "includePublicationTitle",
-      "includeDate",
-      "includeExistingTags",
-      "includeAbstract",
-      "includePdfText",
-      "pdfTextMode",
-      "pdfTextCharLimit",
-    ]) {
-      copy(`content.${n}`);
-    }
-    setPrefRaw("migrated", true);
-  } catch (e) {
-    (Zotero as any).debug?.(`Autotag: pref migration failed: ${String(e)}`);
-  }
-}
-
 /* ---------- provider ---------- */
 
 export function getSelectedProvider(): string {

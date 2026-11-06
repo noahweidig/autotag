@@ -2,10 +2,18 @@
 
 export type LLMItemTags = { key: string; tags: string[] };
 
+function stripFence(text: string): string {
+  const open = text.indexOf("```");
+  if (open < 0) return text;
+  let start = open + 3;
+  if (text.slice(start, start + 4).toLowerCase() === "json") start += 4;
+  const close = text.indexOf("```", start);
+  if (close < 0) return text;
+  return text.slice(start, close).trim();
+}
+
 export function sanitizeJson(content: string): string {
-  let text = String(content || "").trim();
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  if (fenced?.[1]) text = fenced[1].trim();
+  let text = stripFence(String(content || "").trim());
   text = text.replace(/^json\s*\n/i, "").trim();
   if (!text.startsWith("{") && !text.startsWith("[")) {
     const a = text.indexOf("{");
@@ -13,6 +21,12 @@ export function sanitizeJson(content: string): string {
     if (a >= 0 && b > a) text = text.slice(a, b + 1);
   }
   return text;
+}
+
+function toTagList(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.map(String);
+  if (typeof raw === "string") return raw.split(",");
+  return [];
 }
 
 /** Parses model output. Throws a user-readable Error on malformed output. */
@@ -30,7 +44,7 @@ export function parseTagResponse(
   }
   if (Array.isArray(parsed)) parsed = { items: parsed };
   if (!Array.isArray(parsed?.items)) {
-    throw new Error(
+    throw new TypeError(
       `Model JSON had no "items" array:\n${JSON.stringify(parsed).slice(0, 500)}`,
     );
   }
@@ -42,12 +56,7 @@ export function parseTagResponse(
     if (!valid.has(key)) {
       key = batchKeys.length === parsed.items.length ? batchKeys[i] : "";
     }
-    const raw = x?.tags;
-    const tags = Array.isArray(raw)
-      ? raw.map((t: any) => String(t))
-      : typeof raw === "string"
-        ? raw.split(",")
-        : [];
+    const tags = toTagList(x?.tags);
     if (key) out.push({ key, tags });
   });
   return out;

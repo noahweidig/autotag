@@ -3,11 +3,7 @@
 declare const Zotero: _ZoteroTypes.Zotero;
 
 import { config } from "../package.json";
-import {
-  PREF_PANE_ID,
-  getBool,
-  migrateLegacyPrefs,
-} from "./modules/autotagPrefs";
+import { PREF_PANE_ID, getBool } from "./modules/autotagPrefs";
 import {
   registerAutotagMenus,
   unregisterAutotagMenus,
@@ -33,8 +29,6 @@ async function onStartup(): Promise<void> {
     Zotero.unlockPromise,
     Zotero.uiReadyPromise,
   ]);
-
-  migrateLegacyPrefs();
 
   try {
     await (Zotero as any).PreferencePanes.register({

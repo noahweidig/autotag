@@ -23,8 +23,10 @@ export function buildPrompt(input: PromptInput): string {
   if (t.tagCase === "snake") rules.push("Use lowercase snake_case tags.");
   if (t.tagCase === "kebab") rules.push("Use lowercase kebab-case tags.");
   if (t.tagCase === "title") rules.push("Use Title Case tags.");
-  rules.push("Never use slashes, quotes, or special characters inside a tag.");
-  rules.push("Return one entry per paper, using the exact key given.");
+  rules.push(
+    "Never use slashes, quotes, or special characters inside a tag.",
+    "Return one entry per paper, using the exact key given.",
+  );
 
   const blocks: string[] = [];
   if (seeds) {

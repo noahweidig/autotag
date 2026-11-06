@@ -11,7 +11,7 @@ It is built for people who rely on Zotero every day and have reached the point w
 
 ## What's NEW
 
-### v8.0.1 (new logo) and v8.0.0
+### v0.0.1
 
 - **Settings live in Zotero's preferences** (Zotero > Settings > Autotag). The chain of popup dialogs is gone and every change saves instantly.
 - New providers: **Anthropic (Claude)** and **Custom OpenAI-compatible** (LM Studio, vLLM, Groq, etc.). Ollama URL is configurable.
@@ -20,71 +20,6 @@ It is built for people who rely on Zotero every day and have reached the point w
 - **Tag cleanup**: strips slashes and weird characters, merges duplicates (case, spacing, plurals), reuses the spelling of existing library tags, case/separator styles, word and length limits, blacklist, and replacement rules, with a live preview.
 - More options: items per request, temperature, max tokens, timeout, JSON mode, tag language, max tags, prefix, marker tag, automatic tag type, skip already-tagged items, seed-only mode, share top library tags with the model, DOI as input, prompt presets.
 - Item right-click menu entry and progress notifications.
-- Old settings are migrated automatically.
-
-### As of September 2026 (v7.0.0):
-
-- Added compatibility with **Zotero 10.0.x**
-- Existing Zotero 9 functionality remains supported
-
-### As of July 2026 (v6.0.1):
-
-- Updated the Gemini model list to include the latest supported models
-- Added a **Custom** option for Gemini, allowing users to enter a model name manually
-- Improved Ollama request handling to reduce timeout errors when using local models
-
-### As of May 2026 (v5.0.5):
-
-Autotag now supports **Zotero 9.0.x** with improved menu integration and:
-
-- **OpenRouter** as a new LLM provider, giving access to models from Anthropic, OpenAI, Google, DeepSeek, and more
-- Fixed custom model display in settings and success messages
-- Improved API key configuration for all providers
-- Menu items now reliably appear in Zotero 9 Tools menu
-
-### Previous Update (v4.0.2):
-
-Autotag 4.0.2 now allows you to:
-
-- choose what info to be uploaded to LLM
-- include full-text pdf for better tags
-
-Additional features:
-
-- Now with updated gemini model list
-- Display error messages with more details to help pinpoint any issue.
-
-### Previous Update
-
-Autotag now supports **multiple large language model providers**, giving you full flexibility based on cost, availability, and privacy needs.
-
-You can now choose between:
-
-- OpenAI
-  Use OpenAI models for high quality tagging with cloud based inference.
-
-- Gemini
-  Use Google Gemini models when available through your API access level.
-
-- DeepSeek
-  Use DeepSeek models for strong reasoning focused tagging.
-
-- OpenRouter
-  Access a wide variety of models from Anthropic, OpenAI, Google, DeepSeek, and other providers through a single API key.
-
-- Local LLMs via Ollama
-  Run tagging completely offline using local models such as LLaMA, Mistral, or Qwen through Ollama.
-  No API key required. Your data never leaves your machine.
-
-### Additional improvements
-
-- Provider specific model selection
-- Clear error messages when a model is unavailable or not installed
-- Manual model name input for local Ollama models
-- Better guidance for free versus paid model availability
-- Prompt customization available (V2.0.1)
-
----
 
 ## Why this exists
 

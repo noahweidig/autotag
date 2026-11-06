@@ -65,5 +65,3 @@ pref("workflow.review", true);
 pref("workflow.debug", false);
 pref("ui.toolsMenu", true);
 pref("ui.itemMenu", true);
-
-pref("migrated", false);
