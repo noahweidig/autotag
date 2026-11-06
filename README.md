@@ -174,3 +174,7 @@ Autotag was built by a researcher for researchers.
 It comes from the experience of managing large literature collections where manual organization quietly becomes the bottleneck.
 
 If that resonates with you, you are exactly the audience this plugin was built for.
+
+## Credits
+
+Forked from [Autotag by Chenkun (CJ) Jiang](https://github.com/LilyKun064/Autotag_zotero_plugin), licensed under AGPL-3.0.

@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "description": "Automatically assign tags to papers using LLMs.",
   "homepage_url": "https://github.com/noahweidig/autotag",
-  "author": "Chenkun (CJ) Jiang",
+  "author": "noahweidig",
   "chrome": {
     "content": [
       {
