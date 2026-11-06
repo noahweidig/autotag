@@ -10,6 +10,16 @@ It is built for people who rely on Zotero every day and have reached the point w
 ---
 ## What's NEW
 
+### v8.0.0
+- **Settings live in Zotero's preferences** (Zotero > Settings > Autotag). The chain of popup dialogs is gone and every change saves instantly.
+- New providers: **Anthropic (Claude)** and **Custom OpenAI-compatible** (LM Studio, vLLM, Groq, etc.). Ollama URL is configurable.
+- **Test connection** button loads the live model list for your provider.
+- **Review window** to edit, remove, and approve tags per item before they are applied.
+- **Tag cleanup**: strips slashes and weird characters, merges duplicates (case, spacing, plurals), reuses the spelling of existing library tags, case/separator styles, word and length limits, blacklist, and replacement rules, with a live preview.
+- More options: items per request, temperature, max tokens, timeout, JSON mode, tag language, max tags, prefix, marker tag, automatic tag type, skip already-tagged items, seed-only mode, share top library tags with the model, DOI as input, prompt presets.
+- Item right-click menu entry and progress notifications.
+- Old settings are migrated automatically.
+
 ### As of September 2026 (v7.0.0):
 - Added compatibility with **Zotero 10.0.x**
 - Existing Zotero 9 functionality remains supported

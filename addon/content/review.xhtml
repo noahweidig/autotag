@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Autotag: review tags</title>
+    <link rel="stylesheet" href="chrome://autotag/content/review.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Review suggested tags</h1>
+      <p class="sub" id="summary"></p>
+      <div class="toolbar">
+        <button id="select-all" type="button">Select all</button>
+        <button id="select-none" type="button">Select none</button>
+        <input id="filter" type="search" placeholder="Filter items" />
+      </div>
+    </header>
+    <main id="list"></main>
+    <footer>
+      <button id="cancel" type="button">Cancel</button>
+      <button id="apply" type="button" class="primary">Apply tags</button>
+    </footer>
+    <script src="chrome://autotag/content/review.js"></script>
+  </body>
+</html>

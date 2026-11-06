@@ -1,27 +1,31 @@
-// src/modules/llmProviders/index.ts
-
-import { OpenAIProvider } from "./openaiProvider";
+import type { LLMProvider } from "./LLMProvider";
+import { makeOpenAICompatProvider } from "./openaiCompat";
+import { AnthropicProvider } from "./anthropicProvider";
 import { GeminiProvider } from "./geminiProvider";
-import { DeepSeekProvider } from "./deepseekProvider";
-import { OpenRouterProvider } from "./openrouterProvider";
 import { LocalProvider } from "./localProvider";
-
 import { getSelectedProvider } from "../autotagPrefs";
 
-export function getLLMProvider() {
-  const provider = getSelectedProvider();
-
-  switch (provider) {
+export function getLLMProviderById(id: string): LLMProvider {
+  switch (id) {
+    case "anthropic":
+      return AnthropicProvider;
     case "gemini":
       return GeminiProvider;
-    case "deepseek":
-      return DeepSeekProvider;
-    case "openrouter":
-      return OpenRouterProvider;
     case "local":
       return LocalProvider;
+    case "deepseek":
+    case "openrouter":
+    case "custom":
     case "openai":
     default:
-      return OpenAIProvider;
+      return makeOpenAICompatProvider(
+        id === "deepseek" || id === "openrouter" || id === "custom"
+          ? id
+          : "openai",
+      );
   }
+}
+
+export function getLLMProvider(): LLMProvider {
+  return getLLMProviderById(getSelectedProvider());
 }

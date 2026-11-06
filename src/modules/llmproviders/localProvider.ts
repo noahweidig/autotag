@@ -1,29 +1,33 @@
 // src/modules/llmProviders/localProvider.ts
 
 import type { LLMProvider } from "./LLMProvider";
-import { getModelForProvider } from "../autotagPrefs";
+import {
+  getBaseUrlForProvider,
+  getGenerationOptions,
+  getModelForProvider,
+} from "../autotagPrefs";
 
 declare const Zotero: _ZoteroTypes.Zotero;
 
 async function detectOllamaBase(): Promise<string | null> {
-  const candidateBases = [
-    "http://127.0.0.1:11434",
-    "http://localhost:11434",
-  ];
+  const configured = getBaseUrlForProvider("local");
+  const candidates = [configured];
+  if (configured.includes("127.0.0.1"))
+    candidates.push(configured.replace("127.0.0.1", "localhost"));
+  else if (configured.includes("localhost"))
+    candidates.push(configured.replace("localhost", "127.0.0.1"));
 
-  for (const base of candidateBases) {
+  for (const base of candidates) {
     try {
       await Zotero.HTTP.request("GET", `${base}/api/tags`, {
-        headers: {
-          Accept: "application/json",
-        },
+        headers: { Accept: "application/json" },
+        timeout: 5000,
       });
       return base;
     } catch {
-      // try next candidate
+      // try next
     }
   }
-
   return null;
 }
 
@@ -45,7 +49,7 @@ function parseServerResponse(rawResponseText: string): string {
         msg.includes("unknown"))
     ) {
       throw new Error(
-        "Local model not found. Make sure the selected Ollama model is installed."
+        "Local model not found. Make sure the selected Ollama model is installed.",
       );
     }
 
@@ -89,9 +93,7 @@ function normalizeToAutotagJson(text: string): string | null {
 
   // Case 2: model returned { tags: [...] }
   if (parsed && Array.isArray(parsed.tags)) {
-    const tags = parsed.tags
-      .map((t: any) => String(t).trim())
-      .filter(Boolean);
+    const tags = parsed.tags.map((t: any) => String(t).trim()).filter(Boolean);
 
     if (tags.length > 0) {
       return JSON.stringify({
@@ -106,9 +108,7 @@ function normalizeToAutotagJson(text: string): string | null {
 
   // Case 3: model returned a bare array ["tag1", "tag2"]
   if (Array.isArray(parsed)) {
-    const tags = parsed
-      .map((t: any) => String(t).trim())
-      .filter(Boolean);
+    const tags = parsed.map((t: any) => String(t).trim()).filter(Boolean);
 
     if (tags.length > 0) {
       return JSON.stringify({
@@ -158,10 +158,10 @@ async function callOllamaGenerate(
         prompt,
         "",
         "IMPORTANT:",
-        'Return ONLY valid JSON in exactly this shape:',
+        "Return ONLY valid JSON in exactly this shape:",
         '{"items":[{"key":"<Zotero item key>","tags":["tag1","tag2"]}]}',
         'Each item must contain a "tags" array.',
-        'Use the paper key when available.',
+        "Use the paper key when available.",
         "Do not return a bare array.",
         'Do not return {"tags":[...]} by itself.',
         "Do not return markdown fences.",
@@ -171,7 +171,7 @@ async function callOllamaGenerate(
         prompt,
         "",
         "IMPORTANT:",
-        'Return ONLY valid JSON in exactly this shape:',
+        "Return ONLY valid JSON in exactly this shape:",
         '{"items":[{"key":"<Zotero item key>","tags":["tag1","tag2"]}]}',
         'Each item must contain a "tags" array.',
         "Do not return markdown fences or explanation.",
@@ -183,7 +183,10 @@ async function callOllamaGenerate(
     stream: false,
     format: schema,
     options: {
-      temperature: 0,
+      temperature: getGenerationOptions().temperature ?? 0,
+      ...(getGenerationOptions().maxTokens > 0
+        ? { num_predict: getGenerationOptions().maxTokens }
+        : {}),
     },
   };
 
@@ -194,11 +197,11 @@ async function callOllamaGenerate(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
-      timeout: 300000
+      timeout: Math.max(getGenerationOptions().timeoutMs, 300000),
     });
   } catch (err: any) {
     throw new Error(
-      `Connected to Ollama at ${base}, but failed to generate a response. ${err?.message || String(err)}`
+      `Connected to Ollama at ${base}, but failed to generate a response. ${err?.message || String(err)}`,
     );
   }
 
@@ -213,18 +216,31 @@ async function callOllamaGenerate(
 export const LocalProvider: LLMProvider = {
   name: "local",
 
+  async listModels() {
+    const base = await detectOllamaBase();
+    if (!base) throw new Error("Cannot reach Ollama. Is it running?");
+    const res: any = await Zotero.HTTP.request("GET", `${base}/api/tags`, {
+      headers: { Accept: "application/json" },
+      timeout: 10000,
+    });
+    const data = JSON.parse(res.responseText || "{}");
+    return (data?.models || [])
+      .map((m: any) => String(m?.name))
+      .filter(Boolean);
+  },
+
   async generateTags(prompt: string): Promise<string> {
     const model = getModelForProvider("local").trim();
     if (!model) {
       throw new Error(
-        "No local model selected. Open Autotag settings and enter a model name."
+        "No local model selected. Open Autotag settings and enter a model name.",
       );
     }
 
     const base = await detectOllamaBase();
     if (!base) {
       throw new Error(
-        "Cannot connect to local model server. Make sure Ollama is running."
+        `Cannot connect to Ollama at ${getBaseUrlForProvider("local")}. Make sure it is running.`,
       );
     }
 
@@ -243,7 +259,7 @@ export const LocalProvider: LLMProvider = {
     throw new Error(
       `Invalid JSON returned by local (${model}).\n\n` +
         `Expected format: {"items":[{"key":"<Zotero item key>","tags":["tag1","tag2"]}]}\n\n` +
-        `First 1000 chars of raw response:\n${secondOutput.slice(0, 1000)}`
+        `First 1000 chars of raw response:\n${secondOutput.slice(0, 1000)}`,
     );
   },
 };
