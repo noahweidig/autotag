@@ -12,12 +12,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/noahweidig/zot-tag-smith.git"
+    "url": "git+https://github.com/noahweidig/autotag.git"
   },
   "author": "Chenkun (CJ) Jiang",
-  "homepage": "https://github.com/noahweidig/zot-tag-smith#readme",
+  "homepage": "https://github.com/noahweidig/autotag#readme",
   "bugs": {
-    "url": "https://github.com/noahweidig/zot-tag-smith/issues"
+    "url": "https://github.com/noahweidig/autotag/issues"
   },
   "license": "AGPL-3.0-or-later",
   "scripts": {
