@@ -117,26 +117,34 @@ export function cleanTagList(
   o: TagOptions,
   ctx: CleanContext = {},
 ): string[] {
+  // The prefix is never cleaned; tags are compared and merged without it.
+  const unprefix = (v: string) => {
+    const t = String(v ?? "").trim();
+    return o.prefix && t.startsWith(o.prefix) ? t.slice(o.prefix.length) : t;
+  };
+
   const lib = new Map<string, string>();
   if (o.mergeWithLibrary) {
     for (const t of ctx.libraryTags || []) {
-      const k = canonicalKey(t);
-      if (k && !lib.has(k)) lib.set(k, t);
+      const body = unprefix(t);
+      const k = canonicalKey(body);
+      if (k && !lib.has(k)) lib.set(k, body);
     }
   }
-  for (const s of ctx.seeds || []) {
-    const k = canonicalKey(s);
-    if (k) lib.set(k, s.trim());
+  const seeds = (ctx.seeds || []).map(unprefix);
+  for (const sd of seeds) {
+    const k = canonicalKey(sd);
+    if (k) lib.set(k, sd);
   }
-  const seedKeys = new Set((ctx.seeds || []).map(canonicalKey));
-  const black = new Set(o.blacklist.map(canonicalKey));
+  const seedKeys = new Set(seeds.map(canonicalKey));
+  const black = new Set(o.blacklist.map((b) => canonicalKey(unprefix(b))));
 
   const out: string[] = [];
   const seen = new Set<string>();
   for (const raw of tags) {
     // A single "tag" holding several comma/semicolon separated tags is common in sloppy output.
     for (const piece of String(raw ?? "").split(/[;\n]+/)) {
-      let t = cleanTag(piece, o);
+      let t = cleanTag(unprefix(piece), o);
       if (!t) continue;
       const k = canonicalKey(t);
       if (!k || black.has(k)) continue;
@@ -146,8 +154,7 @@ export function cleanTagList(
         if (seen.has(k)) continue;
         seen.add(k);
       }
-      if (o.prefix && !t.startsWith(o.prefix)) t = o.prefix + t;
-      out.push(t);
+      out.push(o.prefix + t);
     }
   }
   return o.maxPerItem > 0 ? out.slice(0, o.maxPerItem) : out;

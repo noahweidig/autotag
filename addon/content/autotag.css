@@ -3,7 +3,7 @@
 /* Autotag menu item icons */
 menuitem.autotag-menuitem {
   /* ✅ use addonRef ("autotag"), not addonID */
-  list-style-image: url("chrome://autotag/content/icons/Jesse.png");
+  list-style-image: url("chrome://autotag/content/icons/autotag.png");
 }
 
 menuitem.autotag-menuitem .menu-iconic-icon {

@@ -3,11 +3,7 @@
 declare const Zotero: _ZoteroTypes.Zotero;
 
 import { config } from "../package.json";
-import {
-  PREF_PANE_ID,
-  getBool,
-  migrateLegacyPrefs,
-} from "./modules/autotagPrefs";
+import { PREF_PANE_ID, getBool } from "./modules/autotagPrefs";
 import {
   registerAutotagMenus,
   unregisterAutotagMenus,
@@ -34,8 +30,6 @@ async function onStartup(): Promise<void> {
     Zotero.uiReadyPromise,
   ]);
 
-  migrateLegacyPrefs();
-
   try {
     await (Zotero as any).PreferencePanes.register({
       pluginID: config.addonID,
@@ -44,7 +38,7 @@ async function onStartup(): Promise<void> {
       scripts: [rootURI + "content/preferences.js"],
       stylesheets: [rootURI + "content/preferences.css"],
       label: "Autotag",
-      image: rootURI + "content/icons/Jesse.png",
+      image: rootURI + "content/icons/autotag.png",
     });
   } catch (e) {
     debug(`preference pane registration failed: ${String(e)}`);

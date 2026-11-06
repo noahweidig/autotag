@@ -25,11 +25,11 @@ import {
 import { cleanTagList } from "./tagCleaner";
 import { openReviewDialog, type ReviewRow } from "./autotagReview";
 import { getLLMProvider } from "./llmproviders";
-
-type LLMItemTags = { key: string; tags: string[] };
+import { parseTagResponse, type LLMItemTags } from "./llmJson";
+import { buildPrompt } from "./promptBuilder";
 
 let running = false;
-const ICON = "chrome://autotag/content/icons/Jesse.png";
+const ICON = "chrome://autotag/content/icons/autotag.png";
 const debug = (msg: string) => (Zotero as any).debug?.(`[Autotag] ${msg}`);
 const verbose = (msg: string) => {
   if (isDebugEnabled()) debug(msg);
@@ -63,98 +63,7 @@ function notify(headline: string, text: string, ms = 5000, error = false) {
   p.finish(text, ms, error);
 }
 
-/* ---------- prompt ---------- */
-
-function listField(v: string[]): string {
-  return v.length ? v.join(", ") : "(none)";
-}
-
-function buildPrompt(
-  items: ItemMetadata[],
-  vocab: string[],
-  t: TagOptions,
-): string {
-  const c = getPromptContentOptions();
-  const seeds = getSeedKeywords();
-  const rules: string[] = [];
-  if (t.maxPerItem > 0)
-    rules.push(`Return at most ${t.maxPerItem} tags per paper.`);
-  if (t.language) rules.push(`Write all tags in ${t.language}.`);
-  if (t.tagCase === "lower") rules.push("Use lowercase tags.");
-  if (t.tagCase === "snake") rules.push("Use lowercase snake_case tags.");
-  if (t.tagCase === "kebab") rules.push("Use lowercase kebab-case tags.");
-  if (t.tagCase === "title") rules.push("Use Title Case tags.");
-  rules.push("Never use slashes, quotes, or special characters inside a tag.");
-  rules.push("Return one entry per paper, using the exact key given.");
-
-  const blocks: string[] = [];
-  if (seeds) {
-    blocks.push(
-      `Preferred tag vocabulary:\nseed_keywords = [${seeds}]\n` +
-        (t.restrictToSeeds
-          ? "- Use ONLY tags from this list. Omit a tag if none apply."
-          : "- Prefer these tags when they clearly apply; do not force them."),
-    );
-  }
-  if (vocab.length) {
-    blocks.push(
-      `Tags already used in this library (reuse them when they fit instead of inventing near-duplicates):\n${vocab.join(", ")}`,
-    );
-  }
-
-  const papers = items
-    .map((it, i) => {
-      const L: string[] = [`Paper ${i + 1}:`, `key: ${it.key}`];
-      const add = (label: string, v: string) =>
-        v.trim() && L.push(`${label}: ${v.trim()}`);
-      add("itemType", it.itemType);
-      if (c.includeTitle) add("title", it.title);
-      if (c.includeCreators) add("creators", it.creators.join("; "));
-      if (c.includePublicationTitle) add("journal", it.publicationTitle);
-      if (c.includeDate) add("date", it.date);
-      if (c.includeDOI) add("doi", it.doi);
-      if (c.includeExistingTags) L.push(`existing_tags: ${listField(it.tags)}`);
-      if (c.includeAbstract)
-        L.push("abstract:", it.abstract.trim() || "[no abstract available]");
-      if (c.includePdfText)
-        L.push(
-          "pdf_text:",
-          it.pdfText?.trim() || "[no extracted PDF text available]",
-        );
-      return L.join("\n");
-    })
-    .join("\n\n---\n\n");
-
-  return [
-    getFinalPrompt(),
-    "",
-    "Additional rules:",
-    ...rules.map((r) => `- ${r}`),
-    "",
-    "Output format: return only raw JSON (no Markdown, no code fences, no commentary):",
-    '{"items":[{"key":"<Zotero item key>","tags":["tag1","tag2"]}]}',
-    ...(blocks.length ? ["", ...blocks] : []),
-    "",
-    "=== PAPERS ===",
-    "",
-    papers,
-  ].join("\n");
-}
-
 /* ---------- LLM call ---------- */
-
-function sanitizeJson(content: string): string {
-  let text = String(content || "").trim();
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  if (fenced?.[1]) text = fenced[1].trim();
-  text = text.replace(/^json\s*\n/i, "").trim();
-  if (!text.startsWith("{") && !text.startsWith("[")) {
-    const a = text.indexOf("{");
-    const b = text.lastIndexOf("}");
-    if (a >= 0 && b > a) text = text.slice(a, b + 1);
-  }
-  return text;
-}
 
 async function tagBatch(
   prompt: string,
@@ -187,36 +96,10 @@ async function tagBatch(
   }
   verbose(`raw response:\n${content}`);
 
-  let parsed: any;
-  try {
-    parsed = JSON.parse(sanitizeJson(content));
-  } catch {
-    throw new Error(
-      `Model returned invalid JSON. Start of response:\n${content.slice(0, 500)}`,
-    );
-  }
-  if (Array.isArray(parsed)) parsed = { items: parsed };
-  if (!Array.isArray(parsed?.items)) {
-    throw new Error(
-      `Model JSON had no "items" array:\n${JSON.stringify(parsed).slice(0, 500)}`,
-    );
-  }
-
-  const valid = new Set(batch.map((b) => b.key));
-  const out: LLMItemTags[] = [];
-  parsed.items.forEach((x: any, i: number) => {
-    let key = String(x?.key || "").trim();
-    if (!valid.has(key))
-      key = batch.length === parsed.items.length ? batch[i].key : "";
-    const raw = x?.tags;
-    const tags = Array.isArray(raw)
-      ? raw.map((t: any) => String(t))
-      : typeof raw === "string"
-        ? raw.split(",")
-        : [];
-    if (key) out.push({ key, tags });
-  });
-  return out;
+  return parseTagResponse(
+    content,
+    batch.map((b) => b.key),
+  );
 }
 
 /* ---------- library vocabulary ---------- */
@@ -350,7 +233,14 @@ export async function runAutotagForSelection(
         `Asking ${provider.name} (${getModelForProvider(provider.name)}) - batch ${b + 1}/${batches.length}`,
         Math.round((b / batches.length) * 100),
       );
-      const prompt = buildPrompt(batches[b], vocab, t);
+      const prompt = buildPrompt({
+        items: batches[b],
+        basePrompt: getFinalPrompt(),
+        seeds: getSeedKeywords(),
+        vocab,
+        content: getPromptContentOptions(),
+        tags: t,
+      });
       verbose(`prompt:\n${prompt}`);
       try {
         for (const r of await tagBatch(prompt, batches[b])) {

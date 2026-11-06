@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint and formatting
+        run: npm run lint:check
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify XPI contents
+        run: |
+          XPI=$(ls .scaffold/build/*.xpi)
+          echo "Built $XPI"
+          unzip -l "$XPI" | tee /tmp/xpi.txt
+          for f in manifest.json bootstrap.js prefs.js \
+                   content/scripts/autotag.js content/preferences.xhtml \
+                   content/preferences.js content/review.xhtml content/review.js \
+                   content/icons/autotag.png; do
+            grep -q " $f\$" /tmp/xpi.txt || { echo "Missing $f in XPI"; exit 1; }
+          done

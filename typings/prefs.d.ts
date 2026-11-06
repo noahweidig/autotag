@@ -67,7 +67,6 @@ declare namespace _ZoteroTypes {
       "workflow.debug": boolean;
       "ui.toolsMenu": boolean;
       "ui.itemMenu": boolean;
-      "migrated": boolean;
     };
   }
 }

@@ -8,9 +8,11 @@ Your mental map of it quietly collapses.
 It is built for people who rely on Zotero every day and have reached the point where folders, memory, and manual tagging no longer scale.
 
 ---
+
 ## What's NEW
 
-### v8.0.0
+### v0.0.1
+
 - **Settings live in Zotero's preferences** (Zotero > Settings > Autotag). The chain of popup dialogs is gone and every change saves instantly.
 - New providers: **Anthropic (Claude)** and **Custom OpenAI-compatible** (LM Studio, vLLM, Groq, etc.). Ollama URL is configurable.
 - **Test connection** button loads the live model list for your provider.
@@ -18,65 +20,6 @@ It is built for people who rely on Zotero every day and have reached the point w
 - **Tag cleanup**: strips slashes and weird characters, merges duplicates (case, spacing, plurals), reuses the spelling of existing library tags, case/separator styles, word and length limits, blacklist, and replacement rules, with a live preview.
 - More options: items per request, temperature, max tokens, timeout, JSON mode, tag language, max tags, prefix, marker tag, automatic tag type, skip already-tagged items, seed-only mode, share top library tags with the model, DOI as input, prompt presets.
 - Item right-click menu entry and progress notifications.
-- Old settings are migrated automatically.
-
-### As of September 2026 (v7.0.0):
-- Added compatibility with **Zotero 10.0.x**
-- Existing Zotero 9 functionality remains supported
-
-### As of July 2026 (v6.0.1):
-
-* Updated the Gemini model list to include the latest supported models
-* Added a **Custom** option for Gemini, allowing users to enter a model name manually
-* Improved Ollama request handling to reduce timeout errors when using local models
-
-### As of May 2026 (v5.0.5):
-Autotag now supports **Zotero 9.0.x** with improved menu integration and:
-- **OpenRouter** as a new LLM provider, giving access to models from Anthropic, OpenAI, Google, DeepSeek, and more
-- Fixed custom model display in settings and success messages
-- Improved API key configuration for all providers
-- Menu items now reliably appear in Zotero 9 Tools menu
-
-### Previous Update (v4.0.2):
-Autotag 4.0.2 now allows you to: 
-- choose what info to be uploaded to LLM
-- include full-text pdf for better tags
-
-Additional features: 
-- Now with updated gemini model list
-- Display error messages with more details to help pinpoint any issue.
-
-### Previous Update
-
-Autotag now supports **multiple large language model providers**, giving you full flexibility based on cost, availability, and privacy needs.
-
-You can now choose between:
-
-- OpenAI
-    Use OpenAI models for high quality tagging with cloud based inference.
-
-- Gemini
-    Use Google Gemini models when available through your API access level.
-
-- DeepSeek
-    Use DeepSeek models for strong reasoning focused tagging.
-
-- OpenRouter
-    Access a wide variety of models from Anthropic, OpenAI, Google, DeepSeek, and other providers through a single API key.
-
-- Local LLMs via Ollama
-    Run tagging completely offline using local models such as LLaMA, Mistral, or Qwen through Ollama.
-    No API key required. Your data never leaves your machine.
-
-### Additional improvements
-
-- Provider specific model selection
-- Clear error messages when a model is unavailable or not installed
-- Manual model name input for local Ollama models
-- Better guidance for free versus paid model availability
-- Prompt customization available (V2.0.1)
-
----
 
 ## Why this exists
 
@@ -129,13 +72,13 @@ Before using Autotag, you must enter your API key.
 
 3. Autotag will analyze the items and automatically add tags.
 
-That’s it — the tags will appear directly on your items. Sometimes it might take longer depending on how many papers you selected. Be patient. 
+That’s it — the tags will appear directly on your items. Sometimes it might take longer depending on how many papers you selected. Be patient.
 
-Once the auto-tagging process is done, a window will pop up to show you tags selected for each paper. You can verify/add/delete/edit tags as you want before adding them to your item. 
+Once the auto-tagging process is done, a window will pop up to show you tags selected for each paper. You can verify/add/delete/edit tags as you want before adding them to your item.
 
 ## Demo
 
-https://github.com/LilyKun064/Autotag_zotero_plugin/blob/main/assets/Autotag.mp4
+https://github.com/noahweidig/zot-tag-smith/blob/main/assets/Autotag.mp4
 
 ## What Autotag Uses
 
@@ -164,7 +107,7 @@ It allows you to:
 • Generate tags automatically based on item metadata and content  
 • Apply tags at the collection level instead of one item at a time  
 • Keep working fully inside Zotero without exporting data  
-• Reduce the cognitive load of maintaining large libraries  
+• Reduce the cognitive load of maintaining large libraries
 
 The goal is not to replace your thinking.  
 The goal is to remove repetitive and fragile manual work.
@@ -178,7 +121,7 @@ To avoid confusion, Autotag does not:
 • Replace Zotero’s native tagging system  
 • Modify or delete your existing tags  
 • Claim perfect or authoritative tagging  
-• Act as a recommendation engine or writing assistant  
+• Act as a recommendation engine or writing assistant
 
 Think of it as a **supporting tool**, not an oracle.
 
@@ -190,7 +133,7 @@ Project status:
 
 • Core functionality implemented  
 • Interfaces and behavior still evolving  
-• Expect rough edges and frequent updates  
+• Expect rough edges and frequent updates
 
 This is an active research driven project.  
 User feedback directly influences future changes.
@@ -204,7 +147,7 @@ Planned directions include:
 • Improving tag quality and transparency  
 • Better controls over tag generation  
 • Clearer previews before applying tags  
-• Documentation with real research examples  
+• Documentation with real research examples
 
 Details may change as real usage patterns emerge.
 
@@ -218,7 +161,7 @@ Especially useful feedback includes:
 
 • Where tagging feels inaccurate or unhelpful  
 • What kinds of tags you actually want in practice  
-• How this fits or fails in your existing workflow  
+• How this fits or fails in your existing workflow
 
 Bug reports and feature requests are welcome via issues.
 
@@ -231,5 +174,3 @@ Autotag was built by a researcher for researchers.
 It comes from the experience of managing large literature collections where manual organization quietly becomes the bottleneck.
 
 If that resonates with you, you are exactly the audience this plugin was built for.
-
-P.S.: the black cat icon is my black cat Jesse, who contributed to this project by stepping onto my keyboards repeatedly while I was working. Hope you like him, too. 

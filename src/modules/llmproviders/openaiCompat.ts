@@ -16,7 +16,7 @@ export function makeOpenAICompatProvider(id: string): LLMProvider {
     const key = getApiKeyForProvider(id);
     if (key) h.Authorization = `Bearer ${key}`;
     if (id === "openrouter") {
-      h["HTTP-Referer"] = "https://github.com/LilyKun064/Autotag_zotero_plugin";
+      h["HTTP-Referer"] = "https://github.com/noahweidig/zot-tag-smith";
       h["X-OpenRouter-Title"] = "Autotag Zotero Plugin";
     }
     return h;
