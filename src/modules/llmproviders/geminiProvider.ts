@@ -1,65 +1,56 @@
-// src/modules/llmProviders/geminiProvider.ts
-
 import type { LLMProvider } from "./LLMProvider";
 import {
   getApiKeyForProvider,
+  getBaseUrlForProvider,
+  getGenerationOptions,
   getModelForProvider,
 } from "../autotagPrefs";
-
-declare const Zotero: _ZoteroTypes.Zotero;
+import { httpJson } from "./http";
 
 export const GeminiProvider: LLMProvider = {
   name: "gemini",
 
-  async generateTags(prompt: string): Promise<string> {
-    const apiKey = getApiKeyForProvider("gemini").trim();
-    if (!apiKey) {
-      throw new Error("Gemini API key not configured");
-    }
+  async generateTags(prompt) {
+    const model = getModelForProvider("gemini").replace(/^models\//, "");
+    if (!model) throw new Error("Gemini: no model selected");
+    const g = getGenerationOptions();
+    const generationConfig: any = {};
+    if (g.temperature !== null) generationConfig.temperature = g.temperature;
+    if (g.maxTokens > 0) generationConfig.maxOutputTokens = g.maxTokens;
+    if (g.jsonMode) generationConfig.responseMimeType = "application/json";
 
-    const model = getModelForProvider("gemini").trim();
-    if (!model) {
-      throw new Error(
-        "No Gemini model selected. Open Autotag settings and choose a model.",
-      );
-    }
-
-    const body = {
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.2,
-      },
-    };
-
-    const response = await Zotero.HTTP.request(
+    const data = await httpJson(
       "POST",
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      `${getBaseUrlForProvider("gemini")}/models/${encodeURIComponent(model)}:generateContent`,
       {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
+        "Content-Type": "application/json",
+        "x-goog-api-key": getApiKeyForProvider("gemini"),
+      },
+      {
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig,
       },
     );
+    const text = (data?.candidates?.[0]?.content?.parts || [])
+      .map((p: any) => p?.text || "")
+      .join("");
+    if (!text) throw new Error("Gemini response missing text content");
+    return text;
+  },
 
-    const raw = (response as any).responseText;
-    if (!raw) {
-      throw new Error("Empty Gemini response");
-    }
-
-    const parsed = JSON.parse(raw);
-    const content =
-      parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!content) {
-      throw new Error("Gemini response missing text content");
-    }
-
-    return content;
+  async listModels() {
+    const data = await httpJson(
+      "GET",
+      `${getBaseUrlForProvider("gemini")}/models?pageSize=200`,
+      { "x-goog-api-key": getApiKeyForProvider("gemini") },
+      undefined,
+      15000,
+    );
+    return (data?.models || [])
+      .filter((m: any) =>
+        (m?.supportedGenerationMethods || []).includes("generateContent"),
+      )
+      .map((m: any) => String(m?.name || "").replace(/^models\//, ""))
+      .filter(Boolean);
   },
 };

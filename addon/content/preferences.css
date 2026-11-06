@@ -1,0 +1,84 @@
+.autotag-pane {
+  padding-bottom: 24px;
+}
+.autotag-pane groupbox {
+  margin-block: 0 14px;
+}
+.autotag-pane h1 {
+  font-size: 20px;
+  margin: 0 0 2px;
+}
+.autotag-pane h2 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+.at-header {
+  margin-bottom: 10px;
+}
+.at-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+.at-label {
+  width: 150px;
+  flex: none;
+}
+.at-label-block {
+  display: block;
+  margin: 10px 0 3px;
+}
+.at-hint {
+  color: color-mix(in srgb, currentColor 60%, transparent);
+  font-size: 12px;
+  margin: 2px 0;
+}
+.at-hint.indent {
+  margin-inline-start: 158px;
+}
+.at-wide {
+  flex: 1;
+  min-width: 200px;
+}
+.at-num {
+  width: 90px;
+  flex: none;
+}
+.at-full,
+.autotag-pane textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+.autotag-pane textarea {
+  font-family: monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+.at-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+.at-status {
+  font-size: 12px;
+}
+.at-status.ok {
+  color: #1a7f37;
+}
+.at-status.err {
+  color: #cf222e;
+}
+.at-preview {
+  font-family: monospace;
+  font-size: 12px;
+  margin: 6px 0 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, currentColor 7%, transparent);
+  min-height: 1.4em;
+}
+.autotag-pane [hidden] {
+  display: none !important;
+}

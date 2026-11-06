@@ -1,102 +1,399 @@
-<linkset>
-  <html:link rel="localization" href="__addonRef__-preferences.ftl" />
-</linkset>
+<vbox id="autotag-pane" class="autotag-pane">
+  <html:div class="at-header">
+    <html:h1>Autotag</html:h1>
+    <html:p class="at-hint">
+      Generate tags for selected items with an LLM. Changes save automatically.
+    </html:p>
+  </html:div>
 
-<groupbox
-  onload="Zotero.__addonInstance__.hooks.onPrefsEvent('load', { window });"
->
-  <label><html:h2 data-l10n-id="pref-title"></html:h2></label>
+  <!-- ============ Provider ============ -->
+  <groupbox>
+    <label><html:h2>Provider</html:h2></label>
 
-  <checkbox
-    id="zotero-prefpane-__addonRef__-enable"
-    preference="enable"
-    data-l10n-id="pref-enable"
-  />
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-provider">Service</html:label>
+      <menulist id="at-provider" native="true">
+        <menupopup></menupopup>
+      </menulist>
+    </html:div>
+    <html:p class="at-hint indent" id="at-provider-hint"></html:p>
 
-  <hbox>
-    <html:label
-      for="zotero-prefpane-__addonRef__-input"
-      data-l10n-id="pref-input"
-    ></html:label>
+    <html:div class="at-row" data-needs="key">
+      <html:label class="at-label" for="at-key">API key</html:label>
+      <html:input
+        id="at-key"
+        type="password"
+        class="at-wide"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <html:button id="at-key-toggle" type="button">Show</html:button>
+    </html:div>
+    <html:p class="at-hint indent" data-needs="key">
+      Stored in your Zotero profile preferences, never synced.
+      <html:a id="at-key-link" href="#">Get a key</html:a>
+    </html:p>
+
+    <html:div class="at-row" data-needs="base">
+      <html:label class="at-label" for="at-base">Base URL</html:label>
+      <html:input id="at-base" type="text" class="at-wide" spellcheck="false" />
+    </html:div>
+
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-model">Model</html:label>
+      <menulist id="at-model" native="true">
+        <menupopup></menupopup>
+      </menulist>
+      <html:input
+        id="at-model-custom"
+        type="text"
+        class="at-wide"
+        placeholder="Model ID"
+        spellcheck="false"
+        hidden="true"
+      />
+    </html:div>
+
+    <html:div class="at-row">
+      <html:label class="at-label"></html:label>
+      <html:button id="at-test" type="button"
+        >Test connection and load models</html:button
+      >
+      <html:span id="at-status" class="at-status"></html:span>
+    </html:div>
+  </groupbox>
+
+  <!-- ============ Workflow ============ -->
+  <groupbox>
+    <label><html:h2>Workflow</html:h2></label>
+    <checkbox
+      data-pref="workflow.review"
+      label="Review suggested tags before applying"
+    />
+    <checkbox
+      data-pref="tags.skipTagged"
+      label="Skip items that already have tags"
+    />
+    <checkbox
+      data-pref="tags.asAutomatic"
+      label="Add tags as automatic (gray in the tag selector)"
+    />
+    <checkbox
+      data-pref="ui.toolsMenu"
+      label="Show Autotag in the Tools menu (restart window to apply)"
+    />
+    <checkbox
+      data-pref="ui.itemMenu"
+      label="Show Autotag in the item right-click menu (restart window to apply)"
+    />
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-marker">Marker tag</html:label>
+      <html:input
+        id="at-marker"
+        data-pref="tags.marker"
+        type="text"
+        placeholder="e.g. autotagged (optional)"
+      />
+    </html:div>
+    <html:p class="at-hint indent">
+      If set, this tag is added to every item Autotag touches so you can find or
+      remove them later.
+    </html:p>
+  </groupbox>
+
+  <!-- ============ Content ============ -->
+  <groupbox>
+    <label><html:h2>What is sent to the model</html:h2></label>
+    <html:div class="at-grid">
+      <checkbox data-pref="content.includeTitle" label="Title" />
+      <checkbox data-pref="content.includeAbstract" label="Abstract" />
+      <checkbox data-pref="content.includeCreators" label="Authors" />
+      <checkbox
+        data-pref="content.includePublicationTitle"
+        label="Journal / publication"
+      />
+      <checkbox data-pref="content.includeDate" label="Date" />
+      <checkbox data-pref="content.includeDOI" label="DOI" />
+      <checkbox data-pref="content.includeExistingTags" label="Existing tags" />
+      <checkbox data-pref="content.includePdfText" label="Extracted PDF text" />
+    </html:div>
+    <html:div class="at-row" data-needs="pdf">
+      <html:label class="at-label" for="at-pdfmode">PDF text amount</html:label>
+      <menulist id="at-pdfmode" data-pref="content.pdfTextMode" native="true">
+        <menupopup>
+          <menuitem label="First N characters" value="first_n_chars" />
+          <menuitem label="Full text" value="full_text" />
+        </menupopup>
+      </menulist>
+      <html:input
+        data-pref="content.pdfTextCharLimit"
+        data-type="int"
+        type="number"
+        min="200"
+        step="500"
+        class="at-num"
+        id="at-pdflimit"
+      />
+      <html:span class="at-hint">characters</html:span>
+    </html:div>
+  </groupbox>
+
+  <!-- ============ Vocabulary ============ -->
+  <groupbox>
+    <label><html:h2>Tag vocabulary</html:h2></label>
+    <html:label class="at-label-block" for="at-seeds"
+      >Seed keywords (comma separated)</html:label
+    >
+    <html:textarea
+      id="at-seeds"
+      data-pref="seedKeywords"
+      rows="2"
+      spellcheck="false"
+      placeholder="machine learning, CRISPR, climate"
+    ></html:textarea>
+    <checkbox
+      data-pref="tags.restrictToSeeds"
+      label="Only allow seed keywords (drop everything else)"
+    />
+    <checkbox
+      data-pref="tags.reuseLibraryTags"
+      label="Show the model your most-used library tags so it reuses them"
+    />
+    <html:div class="at-row" data-needs="vocab">
+      <html:label class="at-label" for="at-vocab"
+        >Library tags to share</html:label
+      >
+      <html:input
+        id="at-vocab"
+        data-pref="tags.libraryVocabLimit"
+        data-type="int"
+        type="number"
+        min="10"
+        max="1000"
+        step="10"
+        class="at-num"
+      />
+    </html:div>
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-lang">Tag language</html:label>
+      <html:input
+        id="at-lang"
+        data-pref="tags.language"
+        type="text"
+        placeholder="Same as paper (e.g. English)"
+      />
+    </html:div>
+  </groupbox>
+
+  <!-- ============ Cleanup ============ -->
+  <groupbox>
+    <label><html:h2>Tag cleanup</html:h2></label>
+    <html:p class="at-hint">
+      Applied to every tag before review and again after your edits.
+    </html:p>
+    <html:div class="at-grid">
+      <checkbox
+        data-pref="tags.stripSlashes"
+        label="Remove slashes (a/b becomes a b)"
+      />
+      <checkbox
+        data-pref="tags.stripSpecial"
+        label="Remove weird characters and symbols"
+      />
+      <checkbox
+        data-pref="tags.dedupe"
+        label="Merge duplicates (case, spacing, plurals)"
+      />
+      <checkbox
+        data-pref="tags.mergeWithLibrary"
+        label="Reuse the spelling of matching library tags"
+      />
+    </html:div>
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-case">Letter case</html:label>
+      <menulist id="at-case" data-pref="tags.case" native="true">
+        <menupopup>
+          <menuitem label="Keep as returned" value="keep" />
+          <menuitem label="lowercase" value="lower" />
+          <menuitem label="snake_case" value="snake" />
+          <menuitem label="kebab-case" value="kebab" />
+          <menuitem label="Title Case" value="title" />
+        </menupopup>
+      </menulist>
+    </html:div>
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-sep">Word separator</html:label>
+      <menulist id="at-sep" data-pref="tags.separator" native="true">
+        <menupopup>
+          <menuitem label="Keep as returned" value="keep" />
+          <menuitem label="Space" value="space" />
+          <menuitem label="Underscore" value="underscore" />
+          <menuitem label="Hyphen" value="hyphen" />
+        </menupopup>
+      </menulist>
+    </html:div>
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-max">Max tags per item</html:label>
+      <html:input
+        id="at-max"
+        data-pref="tags.maxPerItem"
+        data-type="int"
+        type="number"
+        min="0"
+        max="50"
+        class="at-num"
+      />
+      <html:span class="at-hint">0 = no limit</html:span>
+    </html:div>
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-words">Max words per tag</html:label>
+      <html:input
+        id="at-words"
+        data-pref="tags.maxWords"
+        data-type="int"
+        type="number"
+        min="0"
+        max="10"
+        class="at-num"
+      />
+      <html:span class="at-hint">0 = no limit</html:span>
+    </html:div>
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-len">Max tag length</html:label>
+      <html:input
+        id="at-len"
+        data-pref="tags.maxLength"
+        data-type="int"
+        type="number"
+        min="0"
+        max="200"
+        class="at-num"
+      />
+      <html:span class="at-hint">characters, 0 = no limit</html:span>
+    </html:div>
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-prefix">Prefix</html:label>
+      <html:input
+        id="at-prefix"
+        data-pref="tags.prefix"
+        type="text"
+        placeholder="e.g. ai: (optional)"
+      />
+    </html:div>
+    <html:label class="at-label-block" for="at-black"
+      >Never use these tags (comma separated)</html:label
+    >
+    <html:textarea
+      id="at-black"
+      data-pref="tags.blacklist"
+      rows="2"
+      spellcheck="false"
+      placeholder="paper, study, research"
+    ></html:textarea>
+    <html:label class="at-label-block" for="at-repl"
+      >Replacements (one per line: from=to)</html:label
+    >
+    <html:textarea
+      id="at-repl"
+      data-pref="tags.replacements"
+      rows="3"
+      spellcheck="false"
+      placeholder="ml=machine learning&#10;nlp=natural language processing"
+    ></html:textarea>
+
+    <html:label class="at-label-block" for="at-sample">Try it</html:label>
     <html:input
+      id="at-sample"
       type="text"
-      id="zotero-prefpane-__addonRef__-input"
-      preference="input"
-    ></html:input>
-  </hbox>
+      class="at-full"
+      value="Deep/Learning!!, deep learning, #Neural-Networks, neural networks, ML / AI  "
+    />
+    <html:p class="at-preview" id="at-preview"></html:p>
+  </groupbox>
 
-  <separator class="thin" />
+  <!-- ============ Prompt ============ -->
+  <groupbox>
+    <label><html:h2>Prompt</html:h2></label>
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-preset">Start from</html:label>
+      <menulist id="at-preset" native="true">
+        <menupopup></menupopup>
+      </menulist>
+      <html:button id="at-prompt-reset" type="button"
+        >Reset to default</html:button
+      >
+    </html:div>
+    <html:textarea id="at-prompt" rows="10" spellcheck="false"></html:textarea>
+    <html:p class="at-hint">
+      Output format, tag limits, language, and vocabulary instructions are added
+      automatically; you only need to describe what good tags look like.
+    </html:p>
+  </groupbox>
 
-  <label>
-    <html:h3>OpenAI-compatible overrides</html:h3>
-  </label>
-
-  <hbox align="center">
-    <html:label for="zotero-prefpane-__addonRef__-openai-baseurl">
-      OpenAI API Base URL
-    </html:label>
-    <html:input
-      type="text"
-      id="zotero-prefpane-__addonRef__-openai-baseurl"
-      preference="baseURL.openai"
-      placeholder="https://api.openai.com/v1"
-      style="width: 420px;"
-    ></html:input>
-  </hbox>
-
-  <hbox align="center">
-    <html:label for="zotero-prefpane-__addonRef__-openai-custommodel">
-      OpenAI Custom Model ID
-    </html:label>
-    <html:input
-      type="text"
-      id="zotero-prefpane-__addonRef__-openai-custommodel"
-      preference="customModel.openai"
-      placeholder="gpt-4o-mini"
-      style="width: 420px;"
-    ></html:input>
-  </hbox>
-
-  <separator class="thin" />
-
-  <label>
-    <html:h3>DeepSeek-compatible overrides</html:h3>
-  </label>
-
-  <hbox align="center">
-    <html:label for="zotero-prefpane-__addonRef__-deepseek-baseurl">
-      DeepSeek API Base URL
-    </html:label>
-    <html:input
-      type="text"
-      id="zotero-prefpane-__addonRef__-deepseek-baseurl"
-      preference="baseURL.deepseek"
-      placeholder="https://api.deepseek.com/v1"
-      style="width: 420px;"
-    ></html:input>
-  </hbox>
-
-  <hbox align="center">
-    <html:label for="zotero-prefpane-__addonRef__-deepseek-custommodel">
-      DeepSeek Custom Model ID
-    </html:label>
-    <html:input
-      type="text"
-      id="zotero-prefpane-__addonRef__-deepseek-custommodel"
-      preference="customModel.deepseek"
-      placeholder="deepseek-chat"
-      style="width: 420px;"
-    ></html:input>
-  </hbox>
-
-  <hbox class="virtualized-table-container" flex="1" height="300px">
-    <html:div id="__addonRef__-table-container" />
-  </hbox>
-</groupbox>
-
-<vbox>
-  <html:label
-    data-l10n-id="pref-help"
-    data-l10n-args='{"time": "__buildTime__","name": "__addonName__","version":"__buildVersion__"}'
-  ></html:label>
+  <!-- ============ Advanced ============ -->
+  <groupbox>
+    <label><html:h2>Advanced</html:h2></label>
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-batch">Items per request</html:label>
+      <html:input
+        id="at-batch"
+        data-pref="gen.batchSize"
+        data-type="int"
+        type="number"
+        min="1"
+        max="50"
+        class="at-num"
+      />
+      <html:span class="at-hint"
+        >smaller = more reliable, larger = cheaper</html:span
+      >
+    </html:div>
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-temp">Temperature</html:label>
+      <html:input
+        id="at-temp"
+        data-pref="gen.temperature"
+        type="text"
+        class="at-num"
+        placeholder="0.2"
+      />
+      <html:span class="at-hint">blank = provider default</html:span>
+    </html:div>
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-maxtok"
+        >Max output tokens</html:label
+      >
+      <html:input
+        id="at-maxtok"
+        data-pref="gen.maxTokens"
+        data-type="int"
+        type="number"
+        min="0"
+        step="256"
+        class="at-num"
+      />
+      <html:span class="at-hint">0 = provider default</html:span>
+    </html:div>
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-timeout">Timeout</html:label>
+      <html:input
+        id="at-timeout"
+        data-pref="gen.timeoutSec"
+        data-type="int"
+        type="number"
+        min="5"
+        max="1800"
+        class="at-num"
+      />
+      <html:span class="at-hint">seconds</html:span>
+    </html:div>
+    <checkbox
+      data-pref="gen.jsonMode"
+      label="Request JSON mode (OpenAI-compatible and Gemini; turn off if your server errors)"
+    />
+    <checkbox
+      data-pref="workflow.debug"
+      label="Log prompts and responses to the Zotero debug output"
+    />
+  </groupbox>
 </vbox>

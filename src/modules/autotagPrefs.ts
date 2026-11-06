@@ -1,90 +1,36 @@
 // src/modules/autotagPrefs.ts
+// All preference access. Every key lives under extensions.zotero.autotag.*
+// and is read/written with global=true. Defaults are declared in addon/prefs.js.
 
 declare const Zotero: _ZoteroTypes.Zotero;
 declare const ChromeUtils: any;
 
-let ServicesAny: any = (Zotero as any)?.Services;
+import { getProviderInfo } from "./llmproviders/providerInfo";
 
+let ServicesAny: any = (Zotero as any)?.Services;
 if (!ServicesAny) {
   try {
-    const ServicesMod = ChromeUtils.importESModule(
+    const mod = ChromeUtils.importESModule(
       "resource://gre/modules/Services.sys.mjs",
     );
-    ServicesAny =
-      (ServicesMod as any).Services ||
-      (ServicesMod as any).default ||
-      ServicesMod;
+    ServicesAny = mod.Services || mod.default || mod;
   } catch {
-    // leave undefined; callers will fall back to window.prompt/confirm
+    // leave undefined
   }
 }
-
 export const Services: any = ServicesAny;
 
-// =========================
-// Preference namespace
-// =========================
-const PREF_BRANCH = "extensions.zotero.autotag.";
-
-// =========================
-// Preference keys
-// =========================
-
-// Provider
-const PREF_PROVIDER = `${PREF_BRANCH}llmProvider`;
-
-// API keys
-const PREF_API_KEY_OPENAI = `${PREF_BRANCH}apiKey.openai`;
-const PREF_API_KEY_GEMINI = `${PREF_BRANCH}apiKey.gemini`;
-const PREF_API_KEY_DEEPSEEK = `${PREF_BRANCH}apiKey.deepseek`;
-const PREF_API_KEY_OPENROUTER = `${PREF_BRANCH}apiKey.openrouter`;
-
-// Models
-const PREF_MODEL_OPENAI = `${PREF_BRANCH}model.openai`;
-const PREF_MODEL_GEMINI = `${PREF_BRANCH}model.gemini`;
-const PREF_MODEL_DEEPSEEK = `${PREF_BRANCH}model.deepseek`;
-const PREF_MODEL_OPENROUTER = `${PREF_BRANCH}model.openrouter`;
-const PREF_MODEL_LOCAL = `${PREF_BRANCH}model.local`;
-
-// Custom base URLs
-const PREF_BASE_URL_OPENAI = `${PREF_BRANCH}baseURL.openai`;
-const PREF_BASE_URL_DEEPSEEK = `${PREF_BRANCH}baseURL.deepseek`;
-const PREF_BASE_URL_OPENROUTER = `${PREF_BRANCH}baseURL.openrouter`;
-
-// Custom model IDs
-const PREF_CUSTOM_MODEL_OPENAI = `${PREF_BRANCH}customModel.openai`;
-const PREF_CUSTOM_MODEL_DEEPSEEK = `${PREF_BRANCH}customModel.deepseek`;
-const PREF_CUSTOM_MODEL_GEMINI = `${PREF_BRANCH}customModel.gemini`;
-const PREF_CUSTOM_MODEL_OPENROUTER = `${PREF_BRANCH}customModel.openrouter`;
-
-// Seed keywords
-const PREF_SEED_KEYWORDS = `${PREF_BRANCH}seedKeywords`;
-
-// Final prompt
-const PREF_FINAL_PROMPT = `${PREF_BRANCH}finalPrompt`;
-
-// Prompt content selection
-const PREF_INCLUDE_TITLE = `${PREF_BRANCH}content.includeTitle`;
-const PREF_INCLUDE_CREATORS = `${PREF_BRANCH}content.includeCreators`;
-const PREF_INCLUDE_PUBLICATION_TITLE = `${PREF_BRANCH}content.includePublicationTitle`;
-const PREF_INCLUDE_DATE = `${PREF_BRANCH}content.includeDate`;
-const PREF_INCLUDE_EXISTING_TAGS = `${PREF_BRANCH}content.includeExistingTags`;
-const PREF_INCLUDE_ABSTRACT = `${PREF_BRANCH}content.includeAbstract`;
-const PREF_INCLUDE_PDF_TEXT = `${PREF_BRANCH}content.includePdfText`;
-const PREF_PDF_TEXT_MODE = `${PREF_BRANCH}content.pdfTextMode`;
-const PREF_PDF_TEXT_CHAR_LIMIT = `${PREF_BRANCH}content.pdfTextCharLimit`;
-
-// =========================
-// Types
-// =========================
+export const PREF_BRANCH = "extensions.zotero.autotag.";
 
 export type PdfTextMode = "first_n_chars" | "full_text";
+export type TagCase = "keep" | "lower" | "snake" | "kebab" | "title";
 
 export type PromptContentOptions = {
   includeTitle: boolean;
   includeCreators: boolean;
   includePublicationTitle: boolean;
   includeDate: boolean;
+  includeDOI: boolean;
   includeExistingTags: boolean;
   includeAbstract: boolean;
   includePdfText: boolean;
@@ -92,821 +38,348 @@ export type PromptContentOptions = {
   pdfTextCharLimit: number;
 };
 
-// =========================
-// Generic pref helpers
-// =========================
+export type GenerationOptions = {
+  temperature: number | null;
+  maxTokens: number;
+  timeoutMs: number;
+  batchSize: number;
+  jsonMode: boolean;
+};
 
-function getStringPref(prefKey: string, useGlobal = false): string {
+export type TagSeparator = "keep" | "space" | "underscore" | "hyphen";
+
+export type TagOptions = {
+  separator: TagSeparator;
+  stripSlashes: boolean;
+  stripSpecial: boolean;
+  dedupe: boolean;
+  mergeWithLibrary: boolean;
+  maxWords: number;
+  maxLength: number;
+  blacklist: string[];
+  replacements: [string, string][];
+  maxPerItem: number;
+  tagCase: TagCase;
+  prefix: string;
+  language: string;
+  asAutomatic: boolean;
+  skipTagged: boolean;
+  restrictToSeeds: boolean;
+  reuseLibraryTags: boolean;
+  libraryVocabLimit: number;
+  marker: string;
+};
+
+/* ---------- raw helpers ---------- */
+
+export function getPrefRaw(name: string): unknown {
   try {
-    const raw = Zotero.Prefs.get(prefKey, useGlobal);
-    return raw == null ? "" : String(raw);
+    return Zotero.Prefs.get(PREF_BRANCH + name, true);
   } catch {
-    return "";
+    return undefined;
   }
 }
 
-function setStringPref(prefKey: string, value: string, useGlobal = false): void {
-  Zotero.Prefs.set(prefKey, value, useGlobal);
+export function setPrefRaw(name: string, value: string | number | boolean) {
+  Zotero.Prefs.set(PREF_BRANCH + name, value, true);
 }
 
-function getBoolPref(prefKey: string, fallback: boolean): boolean {
+export function clearPrefRaw(name: string) {
   try {
-    const raw = Zotero.Prefs.get(prefKey);
-    if (raw === true || raw === false) return raw;
-    if (raw == null || raw === "") return fallback;
-
-    const normalized = String(raw).trim().toLowerCase();
-    if (["true", "1", "yes", "y"].includes(normalized)) return true;
-    if (["false", "0", "no", "n"].includes(normalized)) return false;
-
-    return fallback;
+    Zotero.Prefs.clear(PREF_BRANCH + name, true);
   } catch {
-    return fallback;
+    // ignore
   }
 }
 
-function setBoolPref(prefKey: string, value: boolean): void {
-  Zotero.Prefs.set(prefKey, !!value);
+export function getStr(name: string, fallback = ""): string {
+  const raw = getPrefRaw(name);
+  return raw == null ? fallback : String(raw);
 }
 
-function getIntPref(prefKey: string, fallback: number): number {
+export function getBool(name: string, fallback: boolean): boolean {
+  const raw = getPrefRaw(name);
+  if (raw === true || raw === false) return raw;
+  if (raw == null || raw === "") return fallback;
+  const s = String(raw).trim().toLowerCase();
+  if (["true", "1", "yes"].includes(s)) return true;
+  if (["false", "0", "no"].includes(s)) return false;
+  return fallback;
+}
+
+export function getInt(name: string, fallback: number, min = 0): number {
+  const n = Number(getPrefRaw(name));
+  return Number.isFinite(n) && n >= min ? Math.floor(n) : fallback;
+}
+
+/* ---------- migration from the old dialog-based settings ---------- */
+
+/**
+ * Old versions stored some values non-globally (extra "extensions.zotero."
+ * prefix) and kept custom model IDs in separate prefs. Fold them in once.
+ */
+export function migrateLegacyPrefs(): void {
   try {
-    const raw = Zotero.Prefs.get(prefKey);
-    const n = Number(raw);
-    return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
-  } catch {
-    return fallback;
+    if (getBool("migrated", false)) return;
+
+    const legacy = (name: string): unknown => {
+      try {
+        return Zotero.Prefs.get(PREF_BRANCH + name);
+      } catch {
+        return undefined;
+      }
+    };
+    const copy = (name: string) => {
+      const v = legacy(name);
+      if (v !== undefined && v !== null && v !== "") {
+        setPrefRaw(name, v as any);
+      }
+    };
+
+    copy("llmProvider");
+    for (const p of ["openai", "gemini", "deepseek", "openrouter", "local"]) {
+      copy(`model.${p}`);
+      const custom = getStr(`customModel.${p}`).trim();
+      if (custom) {
+        setPrefRaw(`model.${p}`, custom);
+        clearPrefRaw(`customModel.${p}`);
+      }
+    }
+    for (const n of [
+      "includeTitle",
+      "includeCreators",
+      "includePublicationTitle",
+      "includeDate",
+      "includeExistingTags",
+      "includeAbstract",
+      "includePdfText",
+      "pdfTextMode",
+      "pdfTextCharLimit",
+    ]) {
+      copy(`content.${n}`);
+    }
+    setPrefRaw("migrated", true);
+  } catch (e) {
+    (Zotero as any).debug?.(`Autotag: pref migration failed: ${String(e)}`);
   }
 }
 
-function setIntPref(prefKey: string, value: number): void {
-  const n = Number(value);
-  Zotero.Prefs.set(prefKey, Number.isFinite(n) && n > 0 ? Math.floor(n) : value);
-}
-
-// =========================
-// Provider helpers
-// =========================
+/* ---------- provider ---------- */
 
 export function getSelectedProvider(): string {
-  try {
-    const raw = Zotero.Prefs.get(PREF_PROVIDER);
-    return raw ? String(raw) : "openai";
-  } catch {
-    return "openai";
-  }
+  return getStr("llmProvider", "openai") || "openai";
 }
 
-export function setSelectedProvider(provider: string): void {
-  Zotero.Prefs.set(PREF_PROVIDER, provider);
+export function setSelectedProvider(id: string): void {
+  setPrefRaw("llmProvider", id);
 }
-
-function getApiKeyPref(provider: string): string {
-  switch (provider) {
-    case "gemini":
-      return PREF_API_KEY_GEMINI;
-    case "deepseek":
-      return PREF_API_KEY_DEEPSEEK;
-    case "openrouter":
-      return PREF_API_KEY_OPENROUTER;
-    case "openai":
-    default:
-      return PREF_API_KEY_OPENAI;
-  }
-}
-
-function getModelPref(provider: string): string {
-  switch (provider) {
-    case "gemini":
-      return PREF_MODEL_GEMINI;
-    case "deepseek":
-      return PREF_MODEL_DEEPSEEK;
-    case "openrouter":
-      return PREF_MODEL_OPENROUTER;
-    case "local":
-      return PREF_MODEL_LOCAL;
-    case "openai":
-    default:
-      return PREF_MODEL_OPENAI;
-  }
-}
-
-function getBaseUrlPref(provider: string): string {
-  switch (provider) {
-    case "deepseek":
-      return PREF_BASE_URL_DEEPSEEK;
-    case "openrouter":
-      return PREF_BASE_URL_OPENROUTER;
-    case "openai":
-    default:
-      return PREF_BASE_URL_OPENAI;
-  }
-}
-
-function getCustomModelPref(provider: string): string {
-  switch (provider) {
-    case "gemini":
-      return PREF_CUSTOM_MODEL_GEMINI;
-
-    case "deepseek":
-      return PREF_CUSTOM_MODEL_DEEPSEEK;
-
-    case "openrouter":
-      return PREF_CUSTOM_MODEL_OPENROUTER;
-
-    case "openai":
-    default:
-      return PREF_CUSTOM_MODEL_OPENAI;
-  }
-}
-
-// =========================
-// API key access
-// =========================
 
 export function getApiKeyForProvider(provider: string): string {
-  if (provider === "local") return "";
-
-  const prefKey = getApiKeyPref(provider);
-  try {
-    const raw = Zotero.Prefs.get(prefKey, true);
-    return raw == null ? "" : String(raw);
-  } catch {
-    return "";
-  }
+  if (!getProviderInfo(provider).needsKey) return "";
+  return getStr(`apiKey.${provider}`).trim();
 }
-
-export function setApiKeyForProvider(provider: string, value: string): void {
-  if (provider === "local") return;
-
-  const prefKey = getApiKeyPref(provider);
-  Zotero.Prefs.set(prefKey, value, true);
-}
-
-// =========================
-// Model access
-// =========================
-
-export function getModelForProvider(provider: string): string {
-  const prefKey = getModelPref(provider);
-  try {
-    const raw = Zotero.Prefs.get(prefKey);
-    return raw ? String(raw) : "";
-  } catch {
-    return "";
-  }
-}
-
-export function setModelForProvider(provider: string, model: string): void {
-  const prefKey = getModelPref(provider);
-  Zotero.Prefs.set(prefKey, model);
-}
-
-// =========================
-// Custom base URL access
-// =========================
 
 export function getBaseUrlForProvider(provider: string): string {
-  if (provider !== "openai" && provider !== "deepseek" && provider !== "openrouter") return "";
+  const info = getProviderInfo(provider);
+  if (!info.baseUrlEditable) return info.baseUrlDefault;
+  const custom = getStr(`baseURL.${provider}`).trim().replace(/\/+$/, "");
+  return custom || info.baseUrlDefault;
+}
 
-  const prefKey = getBaseUrlPref(provider);
-  try {
-    const raw = Zotero.Prefs.get(prefKey, true);
-    return raw == null ? "" : String(raw);
-  } catch {
-    return "";
+export function getModelForProvider(provider: string): string {
+  const info = getProviderInfo(provider);
+  return getStr(`model.${provider}`).trim() || info.defaultModel;
+}
+
+export function getProviderConfigError(provider: string): string | null {
+  const info = getProviderInfo(provider);
+  if (info.needsKey && !info.keyOptional && !getApiKeyForProvider(provider)) {
+    return `No API key set for ${info.label}.`;
   }
-}
-
-export function setBaseUrlForProvider(provider: string, value: string): void {
-  if (provider !== "openai" && provider !== "deepseek" && provider !== "openrouter") return;
-
-  const prefKey = getBaseUrlPref(provider);
-  Zotero.Prefs.set(prefKey, value, true);
-}
-
-// =========================
-// Custom model access
-// =========================
-
-export function getCustomModelForProvider(provider: string): string {
-  if (
-    provider !== "openai" &&
-    provider !== "gemini" &&
-    provider !== "deepseek" &&
-    provider !== "openrouter"
-  ) {
-    return "";
+  if (provider === "custom" && !getBaseUrlForProvider(provider)) {
+    return "Custom provider needs a Base URL.";
   }
-
-  const prefKey = getCustomModelPref(provider);
-
-  try {
-    const raw = Zotero.Prefs.get(prefKey, true);
-    return raw == null ? "" : String(raw);
-  } catch {
-    return "";
+  if (!getModelForProvider(provider)) {
+    return `No model set for ${info.label}.`;
   }
+  return null;
 }
 
-export function setCustomModelForProvider(
-  provider: string,
-  value: string,
-): void {
-  if (
-    provider !== "openai" &&
-    provider !== "gemini" &&
-    provider !== "deepseek" &&
-    provider !== "openrouter"
-  ) {
-    return;
-  }
+/* ---------- prompt & seeds ---------- */
 
-  const prefKey = getCustomModelPref(provider);
-  Zotero.Prefs.set(prefKey, value, true);
-}
-
-// =========================
-// Seed keywords
-// =========================
-
-export function getSeedKeywords(): string {
-  try {
-    const raw = Zotero.Prefs.get(PREF_SEED_KEYWORDS, true);
-    return raw == null ? "" : String(raw);
-  } catch {
-    return "";
-  }
-}
-
-export function setSeedKeywords(value: string): void {
-  Zotero.Prefs.set(PREF_SEED_KEYWORDS, value, true);
-}
-
-// =========================
-// Final prompt
-// =========================
-
-export function getDefaultPrompt(): string {
-  return `
-You are an assistant that reads scientific papers and assigns concise reusable tags.
+export const PROMPT_PRESETS: { id: string; label: string; text: string }[] = [
+  {
+    id: "default",
+    label: "Balanced (default)",
+    text: `
+You are an assistant that reads scientific papers and assigns concise, reusable tags.
 
 Rules:
-- Tags must be one to three words long
-- Use snake_case or simple ASCII
-- Avoid overly generic terms
-- Reuse identical tags across papers when referring to the same concept
+- Tags are one to three words
+- Use simple ASCII, no punctuation except underscores or hyphens
+- Avoid overly generic terms like "study" or "research"
+- Reuse identical tags across papers for the same concept
 
 For each paper generate three to eight tags covering:
 - Topic
 - Method or technique
-- Material system or model organism
+- Material system, dataset, or model organism
+`.trim(),
+  },
+  {
+    id: "broad",
+    label: "Broad topics (3-5 tags)",
+    text: `
+You assign a few broad, high-level subject tags to papers so a large library can be browsed by theme.
 
-Return only valid JSON.
-- Do not use markdown.
-- Do not use fences.
-- Do not include explanations.
-- Return only raw JSON in the following format:
-{
-  "items": [
-    {
-      "key": "<Zotero item key>",
-      "tags": ["tag1", "tag2"]
-    }
-  ]
-}
-`.trim();
+Rules:
+- Three to five tags per paper
+- Each tag is one or two words
+- Prefer field or sub-field names over specific techniques
+- Reuse identical tags across papers
+`.trim(),
+  },
+  {
+    id: "methods",
+    label: "Methods and materials",
+    text: `
+You assign tags that capture how a paper was done and what it studied.
+
+For each paper include, when stated:
+- Experimental or computational method
+- Instruments, algorithms, or models used
+- Material system, organism, dataset, or population
+- Application domain
+
+Tags are one to three words, lowercase, reused consistently across papers.
+`.trim(),
+  },
+  {
+    id: "humanities",
+    label: "Humanities / social science",
+    text: `
+You assign tags to scholarly works in the humanities and social sciences.
+
+For each work include, when relevant:
+- Subject or theme
+- Theoretical framework or school of thought
+- Method (e.g. ethnography, discourse analysis, survey)
+- Period, region, or population
+
+Tags are one to three words and reused consistently across works.
+`.trim(),
+  },
+];
+
+export function getDefaultPrompt(): string {
+  return PROMPT_PRESETS[0].text;
 }
 
 export function getFinalPrompt(): string {
-  try {
-    const raw = Zotero.Prefs.get(PREF_FINAL_PROMPT, true);
-    return raw == null || !String(raw).trim()
-      ? getDefaultPrompt()
-      : String(raw);
-  } catch {
-    return getDefaultPrompt();
-  }
+  const raw = getStr("finalPrompt");
+  return raw.trim() ? raw : getDefaultPrompt();
 }
 
-export function setFinalPrompt(value: string): void {
-  Zotero.Prefs.set(PREF_FINAL_PROMPT, value, true);
+export function getSeedKeywords(): string {
+  return getStr("seedKeywords").trim();
 }
 
-// =========================
-// Prompt content options
-// =========================
-
-export function getIncludeTitle(): boolean {
-  return getBoolPref(PREF_INCLUDE_TITLE, true);
-}
-
-export function setIncludeTitle(value: boolean): void {
-  setBoolPref(PREF_INCLUDE_TITLE, value);
-}
-
-export function getIncludeCreators(): boolean {
-  return getBoolPref(PREF_INCLUDE_CREATORS, true);
-}
-
-export function setIncludeCreators(value: boolean): void {
-  setBoolPref(PREF_INCLUDE_CREATORS, value);
-}
-
-export function getIncludePublicationTitle(): boolean {
-  return getBoolPref(PREF_INCLUDE_PUBLICATION_TITLE, true);
-}
-
-export function setIncludePublicationTitle(value: boolean): void {
-  setBoolPref(PREF_INCLUDE_PUBLICATION_TITLE, value);
-}
-
-export function getIncludeDate(): boolean {
-  return getBoolPref(PREF_INCLUDE_DATE, true);
-}
-
-export function setIncludeDate(value: boolean): void {
-  setBoolPref(PREF_INCLUDE_DATE, value);
-}
-
-export function getIncludeExistingTags(): boolean {
-  return getBoolPref(PREF_INCLUDE_EXISTING_TAGS, true);
-}
-
-export function setIncludeExistingTags(value: boolean): void {
-  setBoolPref(PREF_INCLUDE_EXISTING_TAGS, value);
-}
-
-export function getIncludeAbstract(): boolean {
-  return getBoolPref(PREF_INCLUDE_ABSTRACT, true);
-}
-
-export function setIncludeAbstract(value: boolean): void {
-  setBoolPref(PREF_INCLUDE_ABSTRACT, value);
-}
-
-export function getIncludePdfText(): boolean {
-  return getBoolPref(PREF_INCLUDE_PDF_TEXT, false);
-}
-
-export function setIncludePdfText(value: boolean): void {
-  setBoolPref(PREF_INCLUDE_PDF_TEXT, value);
-}
-
-export function getPdfTextMode(): PdfTextMode {
-  const raw = getStringPref(PREF_PDF_TEXT_MODE).trim().toLowerCase();
-  return raw === "full_text" ? "full_text" : "first_n_chars";
-}
-
-export function setPdfTextMode(value: PdfTextMode): void {
-  setStringPref(PREF_PDF_TEXT_MODE, value);
-}
-
-export function getPdfTextCharLimit(): number {
-  return getIntPref(PREF_PDF_TEXT_CHAR_LIMIT, 4000);
-}
-
-export function setPdfTextCharLimit(value: number): void {
-  const n = Number(value);
-  const safe = Number.isFinite(n) && n > 0 ? Math.floor(n) : 4000;
-  setIntPref(PREF_PDF_TEXT_CHAR_LIMIT, safe);
-}
+/* ---------- grouped options ---------- */
 
 export function getPromptContentOptions(): PromptContentOptions {
+  const mode = getStr("content.pdfTextMode").toLowerCase();
   return {
-    includeTitle: getIncludeTitle(),
-    includeCreators: getIncludeCreators(),
-    includePublicationTitle: getIncludePublicationTitle(),
-    includeDate: getIncludeDate(),
-    includeExistingTags: getIncludeExistingTags(),
-    includeAbstract: getIncludeAbstract(),
-    includePdfText: getIncludePdfText(),
-    pdfTextMode: getPdfTextMode(),
-    pdfTextCharLimit: getPdfTextCharLimit(),
+    includeTitle: getBool("content.includeTitle", true),
+    includeCreators: getBool("content.includeCreators", true),
+    includePublicationTitle: getBool("content.includePublicationTitle", true),
+    includeDate: getBool("content.includeDate", true),
+    includeDOI: getBool("content.includeDOI", false),
+    includeExistingTags: getBool("content.includeExistingTags", true),
+    includeAbstract: getBool("content.includeAbstract", true),
+    includePdfText: getBool("content.includePdfText", false),
+    pdfTextMode: mode === "full_text" ? "full_text" : "first_n_chars",
+    pdfTextCharLimit: getInt("content.pdfTextCharLimit", 4000, 1),
   };
 }
 
-// =========================
-// Settings dialog helpers
-// =========================
-
-function selectDialog(
-  win: _ZoteroTypes.MainWindow,
-  title: string,
-  text: string,
-  options: string[],
-  defaultIndex: number,
-): number | null {
-  if (Services?.prompt?.select) {
-    const selection: any = { value: defaultIndex };
-    const ok = Services.prompt.select(win, title, text, options, selection);
-    return ok ? Number(selection.value) : null;
-  }
-
-  const list = options.map((o, i) => `${i + 1}) ${o}`).join("\n");
-  const raw = (win as any).prompt(
-    `${title}\n\n${text}\n\n${list}\n\nEnter choice (1-${options.length}):`,
-    String(defaultIndex + 1),
-  );
-  if (raw == null) return null;
-
-  const n = Number(String(raw).trim());
-  if (!Number.isFinite(n) || n < 1 || n > options.length) return null;
-  return n - 1;
+export function getGenerationOptions(): GenerationOptions {
+  const raw = getStr("gen.temperature").trim();
+  const t = raw === "" ? null : Number(raw);
+  return {
+    temperature: t !== null && Number.isFinite(t) ? t : null,
+    maxTokens: getInt("gen.maxTokens", 0, 0),
+    timeoutMs: getInt("gen.timeoutSec", 120, 5) * 1000,
+    batchSize: getInt("gen.batchSize", 5, 1),
+    jsonMode: getBool("gen.jsonMode", false),
+  };
 }
 
-function promptDialog(
-  win: _ZoteroTypes.MainWindow,
-  title: string,
-  text: string,
-  initial: string,
-): string | null {
-  if (Services?.prompt?.prompt) {
-    const input: any = { value: initial };
-    const ok = Services.prompt.prompt(win, title, text, input, null, {});
-    return ok ? String(input.value ?? "") : null;
+export function getTagOptions(): TagOptions {
+  const c = getStr("tags.case", "keep");
+  const tagCase: TagCase = [
+    "keep",
+    "lower",
+    "snake",
+    "kebab",
+    "title",
+  ].includes(c)
+    ? (c as TagCase)
+    : "keep";
+  const sep = getStr("tags.separator", "keep");
+  const splitList = (v: string) =>
+    v
+      .split(/[\n,;]+/)
+      .map((x) => x.trim())
+      .filter(Boolean);
+  const replacements: [string, string][] = [];
+  for (const line of getStr("tags.replacements").split(/\n+/)) {
+    const i = line.indexOf("=");
+    if (i < 1) continue;
+    const from = line.slice(0, i).trim();
+    const to = line.slice(i + 1).trim();
+    if (from) replacements.push([from, to]);
   }
-
-  const raw = (win as any).prompt(`${title}\n\n${text}`, initial);
-  return raw == null ? null : String(raw);
+  return {
+    separator: ["keep", "space", "underscore", "hyphen"].includes(sep)
+      ? (sep as TagSeparator)
+      : "keep",
+    stripSlashes: getBool("tags.stripSlashes", true),
+    stripSpecial: getBool("tags.stripSpecial", true),
+    dedupe: getBool("tags.dedupe", true),
+    mergeWithLibrary: getBool("tags.mergeWithLibrary", true),
+    maxWords: getInt("tags.maxWords", 4, 0),
+    maxLength: getInt("tags.maxLength", 40, 0),
+    blacklist: splitList(getStr("tags.blacklist")),
+    replacements,
+    maxPerItem: getInt("tags.maxPerItem", 8, 0),
+    tagCase,
+    prefix: getStr("tags.prefix"),
+    language: getStr("tags.language").trim(),
+    asAutomatic: getBool("tags.asAutomatic", false),
+    skipTagged: getBool("tags.skipTagged", false),
+    restrictToSeeds: getBool("tags.restrictToSeeds", false),
+    reuseLibraryTags: getBool("tags.reuseLibraryTags", false),
+    libraryVocabLimit: getInt("tags.libraryVocabLimit", 100, 1),
+    marker: getStr("tags.marker").trim(),
+  };
 }
 
-function confirmDialog(
-  win: _ZoteroTypes.MainWindow,
-  title: string,
-  text: string,
-): boolean {
-  if (Services?.prompt?.confirm) {
-    return !!Services.prompt.confirm(win, title, text);
-  }
-  return !!(win as any).confirm(`${title}\n\n${text}`);
+export function isReviewEnabled(): boolean {
+  return getBool("workflow.review", true);
 }
 
-function yesNoDialog(
-  win: _ZoteroTypes.MainWindow,
-  title: string,
-  text: string,
-  currentValue: boolean,
-): boolean | null {
-  const options = ["Yes", "No"];
-  const picked = selectDialog(win, title, text, options, currentValue ? 0 : 1);
-  if (picked == null) return null;
-  return picked === 0;
+export function isDebugEnabled(): boolean {
+  return getBool("workflow.debug", false);
 }
 
-// =========================
-// Settings dialog
-// =========================
+/* ---------- opening the pane ---------- */
 
-export function openAutotagSettings(win: _ZoteroTypes.MainWindow): void {
-  const providerLabels = ["OpenAI", "Gemini", "DeepSeek", "OpenRouter", "Local (Ollama)"];
-  const providerValues = ["openai", "gemini", "deepseek", "openrouter", "local"];
+export const PREF_PANE_ID = "zotero-prefpane-autotag";
 
-  const currentProvider = getSelectedProvider();
-  const providerIndex = Math.max(providerValues.indexOf(currentProvider), 0);
-
-  const pickedProviderIndex = selectDialog(
-    win,
-    "Autotag settings",
-    "Select which LLM provider you want to use:",
-    providerLabels,
-    providerIndex,
-  );
-  if (pickedProviderIndex == null) return;
-
-  const provider = providerValues[pickedProviderIndex] || "openai";
-  setSelectedProvider(provider);
-
-  // ---------- Optional custom base URL ----------
-  if (provider === "openai" || provider === "deepseek" || provider === "openrouter") {
-    const defaultBaseUrl =
-      provider === "openai"
-        ? "https://api.openai.com/v1"
-        : provider === "deepseek"
-          ? "https://api.deepseek.com/v1"
-          : "https://openrouter.ai/api/v1";
-
-    const wantsCustomBaseUrl = yesNoDialog(
-      win,
-      "Autotag settings",
-      `Do you want to change the default API Base URL for ${provider}?\n\nDefault:\n${defaultBaseUrl}`,
-      !!getBaseUrlForProvider(provider).trim(),
-    );
-    if (wantsCustomBaseUrl == null) return;
-
-    if (wantsCustomBaseUrl) {
-      const rawBaseUrl = promptDialog(
-        win,
-        "Autotag settings",
-        `Enter the API Base URL for ${provider}:`,
-        getBaseUrlForProvider(provider).trim() || defaultBaseUrl,
-      );
-      if (rawBaseUrl == null) return;
-      setBaseUrlForProvider(provider, rawBaseUrl.trim());
-    } else {
-      setBaseUrlForProvider(provider, "");
-    }
+export function openAutotagSettings(_win?: unknown): void {
+  try {
+    (Zotero as any).Utilities.Internal.openPreferences(PREF_PANE_ID);
+  } catch (e) {
+    (Zotero as any).debug?.(`Autotag: could not open settings: ${String(e)}`);
   }
-
-  // ---------- Model selection ----------
-  let modelOptions: string[] = [];
-  let defaultModel = "";
-
-  switch (provider) {
-    case "openai":
-      modelOptions = ["gpt-4o-mini", "gpt-3.5-turbo", "gpt-4o", "gpt-4.1", "o3"];
-      defaultModel = "gpt-4o-mini";
-      break;
-
-    case "gemini":
-      modelOptions = [
-        "gemini-3.6-flash",
-        "gemini-3.5-flash",
-        "gemini-3.1-flash-lite",
-        "gemini-3.1-pro-preview",
-      ];
-      defaultModel = "gemini-3.6-flash";
-      break;
-
-    case "deepseek":
-      modelOptions = ["deepseek-chat", "deepseek-reasoner"];
-      defaultModel = "deepseek-chat";
-      break;
-
-    case "openrouter":
-      modelOptions = [
-        "anthropic/claude-4.6-sonnet-20260217",
-        "anthropic/claude-4.7-opus-20260416",
-        "openai/gpt-4o",
-        "openai/gpt-4o-mini",
-        "google/gemini-3-flash-preview-20251217",
-        "deepseek/deepseek-v4-flash-20260423",
-        "deepseek/deepseek-v4-pro-20260423",
-        "moonshotai/kimi-k2.6-20260420",
-        "tencent/hy3-preview-20260421",
-      ];
-      defaultModel = "anthropic/claude-4.6-sonnet-20260217";
-      break;
-
-    case "local":
-      defaultModel = "";
-      break;
-  }
-
-  let selectedModel = "";
-  let selectedCustomModel = "";
-
-  if (provider === "local") {
-    const raw = promptDialog(
-      win,
-      "Autotag settings",
-      "Enter the local model name exactly as shown by `ollama list`:",
-      getModelForProvider("local") || "",
-    );
-    if (raw == null) return;
-    selectedModel = raw.trim();
-  } else {
-    const supportsCustomModel =
-      provider === "openai" ||
-      provider === "gemini" ||
-      provider === "deepseek" ||
-      provider === "openrouter";
-    const modelOptionsWithOther = supportsCustomModel
-      ? [...modelOptions, "Other (enter custom model ID)"]
-      : modelOptions;
-
-    const savedCustomModel =
-      supportsCustomModel ? getCustomModelForProvider(provider).trim() : "";
-
-    const currentModel =
-      savedCustomModel || getModelForProvider(provider) || defaultModel;
-
-    let modelIndex = modelOptions.indexOf(currentModel);
-    if (modelIndex < 0 && supportsCustomModel && savedCustomModel) {
-      modelIndex = modelOptionsWithOther.length - 1;
-    }
-    if (modelIndex < 0) {
-      modelIndex = 0;
-    }
-
-    const pickedModelIndex = selectDialog(
-      win,
-      "Autotag settings",
-      "Select the model you want to use:",
-      modelOptionsWithOther,
-      modelIndex,
-    );
-    if (pickedModelIndex == null) return;
-
-    if (supportsCustomModel && pickedModelIndex === modelOptionsWithOther.length - 1) {
-      const rawCustom = promptDialog(
-        win,
-        "Autotag settings",
-        `Enter the custom model ID for ${provider}:`,
-        savedCustomModel,
-      );
-      if (rawCustom == null) return;
-
-      selectedCustomModel = rawCustom.trim();
-      if (!selectedCustomModel) {
-        throw new Error("Custom model ID cannot be empty.");
-      }
-
-      selectedModel = defaultModel || modelOptions[0] || "";
-    } else {
-      selectedModel = modelOptionsWithOther[pickedModelIndex] || "";
-      selectedCustomModel = "";
-    }
-  }
-
-  if (selectedModel) {
-    setModelForProvider(provider, selectedModel);
-  }
-
-  if (
-    provider === "openai" ||
-    provider === "gemini" ||
-    provider === "deepseek" ||
-    provider === "openrouter"
-  ) {
-    setCustomModelForProvider(provider, selectedCustomModel);
-  }
-
-  // ---------- API key ----------
-  if (provider !== "local") {
-    const raw = promptDialog(
-      win,
-      "Autotag settings",
-      `Enter your ${provider.toUpperCase()} API key:`,
-      getApiKeyForProvider(provider),
-    );
-    if (raw != null) {
-      setApiKeyForProvider(provider, raw.trim());
-    }
-  }
-
-  const includeTitle = yesNoDialog(
-    win,
-    "Autotag settings",
-    "Send paper titles to the LLM?",
-    getIncludeTitle(),
-  );
-  if (includeTitle == null) return;
-  setIncludeTitle(includeTitle);
-
-  const includeCreators = yesNoDialog(
-    win,
-    "Autotag settings",
-    "Send authors/creators to the LLM?",
-    getIncludeCreators(),
-  );
-  if (includeCreators == null) return;
-  setIncludeCreators(includeCreators);
-
-  const includePublicationTitle = yesNoDialog(
-    win,
-    "Autotag settings",
-    "Send publication/journal title to the LLM?",
-    getIncludePublicationTitle(),
-  );
-  if (includePublicationTitle == null) return;
-  setIncludePublicationTitle(includePublicationTitle);
-
-  const includeDate = yesNoDialog(
-    win,
-    "Autotag settings",
-    "Send publication date to the LLM?",
-    getIncludeDate(),
-  );
-  if (includeDate == null) return;
-  setIncludeDate(includeDate);
-
-  const includeExistingTags = yesNoDialog(
-    win,
-    "Autotag settings",
-    "Send existing Zotero tags to the LLM?",
-    getIncludeExistingTags(),
-  );
-  if (includeExistingTags == null) return;
-  setIncludeExistingTags(includeExistingTags);
-
-  const includeAbstract = yesNoDialog(
-    win,
-    "Autotag settings",
-    "Send abstract text to the LLM?",
-    getIncludeAbstract(),
-  );
-  if (includeAbstract == null) return;
-  setIncludeAbstract(includeAbstract);
-
-  const includePdfText = yesNoDialog(
-    win,
-    "Autotag settings",
-    "Send extracted PDF text to the LLM when available?",
-    getIncludePdfText(),
-  );
-  if (includePdfText == null) return;
-  setIncludePdfText(includePdfText);
-
-  if (includePdfText) {
-    const modeOptions = [
-      "First N characters of extracted PDF text",
-      "Full extracted PDF text",
-    ];
-    const currentMode = getPdfTextMode();
-    const modeIndex = currentMode === "full_text" ? 1 : 0;
-
-    const pickedModeIndex = selectDialog(
-      win,
-      "Autotag settings",
-      "Choose how much extracted PDF text to send:",
-      modeOptions,
-      modeIndex,
-    );
-    if (pickedModeIndex == null) return;
-
-    const mode: PdfTextMode =
-      pickedModeIndex === 1 ? "full_text" : "first_n_chars";
-    setPdfTextMode(mode);
-
-    if (mode === "first_n_chars") {
-      const rawLimit = promptDialog(
-        win,
-        "Autotag settings",
-        "Enter the number of characters of extracted PDF text to send per item:",
-        String(getPdfTextCharLimit()),
-      );
-      if (rawLimit == null) return;
-
-      const parsedLimit = Number(String(rawLimit).trim());
-      setPdfTextCharLimit(
-        Number.isFinite(parsedLimit) && parsedLimit > 0
-          ? Math.floor(parsedLimit)
-          : 4000,
-      );
-    }
-  }
-
-  const seedsRaw = promptDialog(
-    win,
-    "Autotag settings",
-    "Optional seed keywords as comma separated list:",
-    getSeedKeywords(),
-  );
-  if (seedsRaw != null) {
-    setSeedKeywords(seedsRaw.trim());
-  }
-
-  const promptRaw = promptDialog(
-    win,
-    "Autotag settings",
-    "Edit the prompt Autotag sends to the LLM.\n\n" +
-    "This prompt will be reused for all future runs.",
-    getFinalPrompt(),
-  );
-  if (promptRaw != null) {
-    setFinalPrompt(promptRaw.trim());
-  }
-
-  const summary = getPromptContentOptions();
-  const pdfSummary = summary.includePdfText
-    ? summary.pdfTextMode === "full_text"
-      ? "enabled (full text)"
-      : `enabled (${summary.pdfTextCharLimit} chars)`
-    : "disabled";
-
-  const baseUrlSummary =
-    provider === "openai" || provider === "deepseek" || provider === "openrouter"
-      ? getBaseUrlForProvider(provider).trim() || "(default)"
-      : "(not applicable)";
-
-  const customModelSummary =
-    provider === "openai" || provider === "deepseek" || provider === "openrouter"
-      ? getCustomModelForProvider(provider).trim() || "(none)"
-      : "(not applicable)";
-
-  const actualModel =
-    customModelSummary !== "(none)" && customModelSummary !== "(not applicable)"
-      ? customModelSummary
-      : selectedModel || "(unchanged)";
-
-  confirmDialog(
-    win,
-    "Autotag settings saved",
-    [
-      `Provider: ${provider}`,
-      `Model: ${actualModel}`,
-      `Custom API Base URL: ${baseUrlSummary}`,
-      `Custom Model ID: ${customModelSummary}`,
-      "",
-      "Content sent to LLM:",
-      `- title: ${summary.includeTitle ? "yes" : "no"}`,
-      `- creators: ${summary.includeCreators ? "yes" : "no"}`,
-      `- publication title: ${summary.includePublicationTitle ? "yes" : "no"}`,
-      `- date: ${summary.includeDate ? "yes" : "no"}`,
-      `- existing tags: ${summary.includeExistingTags ? "yes" : "no"}`,
-      `- abstract: ${summary.includeAbstract ? "yes" : "no"}`,
-      `- PDF text: ${pdfSummary}`,
-    ].join("\n"),
-  );
 }
