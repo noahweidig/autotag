@@ -2,7 +2,9 @@
 
 var chromeHandle;
 
-var { Zotero } = ChromeUtils.importESModule("chrome://zotero/content/zotero.mjs");
+var { Zotero } = ChromeUtils.importESModule(
+  "chrome://zotero/content/zotero.mjs",
+);
 
 var Cc = Components.classes;
 var Ci = Components.interfaces;
@@ -15,7 +17,9 @@ function log(msg) {
     Zotero.debug("[Autotag] " + msg);
   } catch (e) {
     // Last resort
-    try { dump("[Autotag] " + msg + "\n"); } catch (_) {
+    try {
+      dump("[Autotag] " + msg + "\n");
+    } catch (_) {
       //
     }
   }
@@ -23,12 +27,14 @@ function log(msg) {
 
 async function startup({ rootURI }, reason) {
   // AddonManagerStartup
-  const aomStartup = Cc["@mozilla.org/addons/addon-manager-startup;1"].getService(
-    Ci.amIAddonManagerStartup
-  );
+  const aomStartup = Cc[
+    "@mozilla.org/addons/addon-manager-startup;1"
+  ].getService(Ci.amIAddonManagerStartup);
 
   // Create nsIURI without Services.io
-  const ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
+  const ios = Cc["@mozilla.org/network/io-service;1"].getService(
+    Ci.nsIIOService,
+  );
   const manifestURI = ios.newURI(rootURI + "manifest.json");
 
   chromeHandle = aomStartup.registerChrome(manifestURI, [
@@ -37,7 +43,7 @@ async function startup({ rootURI }, reason) {
 
   // Load subscript without Services.scriptloader
   const scriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(
-    Ci.mozIJSSubScriptLoader
+    Ci.mozIJSSubScriptLoader,
   );
 
   // Context for bundled autotag.js
@@ -59,7 +65,9 @@ async function startup({ rootURI }, reason) {
   // Provide Services so the preview prompt uses Services.prompt.prompt
   // instead of falling back to window.prompt (often unavailable).
   try {
-    const mod = ChromeUtils.importESModule("resource://gre/modules/Services.sys.mjs");
+    const mod = ChromeUtils.importESModule(
+      "resource://gre/modules/Services.sys.mjs",
+    );
     ctx.Services = mod.Services || mod.default || mod;
   } catch (e) {
     log("Failed to import Services.sys.mjs: " + String(e));

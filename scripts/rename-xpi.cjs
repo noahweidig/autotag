@@ -14,7 +14,7 @@ function patchImportESModule() {
     "addon",
     "content",
     "scripts",
-    "autotag.js"
+    "autotag.js",
   );
 
   if (!fs.existsSync(builtJs)) {
@@ -55,7 +55,9 @@ function patchImportESModule() {
   s = s.replace(re, replacement);
 
   fs.writeFileSync(builtJs, s, "utf8");
-  console.log("[patch] Patched _importESModule() in built autotag.js for Zotero 8");
+  console.log(
+    "[patch] Patched _importESModule() in built autotag.js for Zotero 8",
+  );
 }
 
 // Run patch before renaming xpi

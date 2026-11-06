@@ -1,5 +1,5 @@
 {
   "extends": "zotero-types/entries/sandbox/",
-  "include": ["src", "typings", "addon/content/ui/promptEditor.js"],
+  "include": ["src", "typings", "tests", "vitest.config.ts"],
   "exclude": ["build", "addon"]
 }
