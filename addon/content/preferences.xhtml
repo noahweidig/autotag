@@ -136,6 +136,60 @@
     </html:p>
   </groupbox>
 
+  <!-- ============ Your library ============ -->
+  <groupbox data-tab="free">
+    <label><html:h2>Your library</html:h2></label>
+    <html:p class="at-hint">
+      Compares each item's title and abstract with your already-tagged items and
+      proposes the tags its closest matches carry. Runs on your computer, uses
+      your own vocabulary, and works best with a few hundred tagged items.
+    </html:p>
+    <checkbox
+      data-pref="source.library"
+      label="Suggest tags from similar items in my library"
+    />
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-lib-k">Similar items</html:label>
+      <html:input
+        id="at-lib-k"
+        data-pref="source.libraryK"
+        data-type="int"
+        type="number"
+        min="2"
+        max="30"
+        class="at-num"
+      />
+      <html:span class="at-hint">how many neighbours vote</html:span>
+    </html:div>
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-lib-max">Max tags</html:label>
+      <html:input
+        id="at-lib-max"
+        data-pref="source.libraryMax"
+        data-type="int"
+        type="number"
+        min="1"
+        max="20"
+        class="at-num"
+      />
+    </html:div>
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-lib-min"
+        >Min tagged items</html:label
+      >
+      <html:input
+        id="at-lib-min"
+        data-pref="source.libraryMinItems"
+        data-type="int"
+        type="number"
+        min="5"
+        max="1000"
+        class="at-num"
+      />
+      <html:span class="at-hint">below this the step is skipped</html:span>
+    </html:div>
+  </groupbox>
+
   <!-- ============ Free sources ============ -->
   <groupbox data-tab="free">
     <label><html:h2>Lookup by DOI</html:h2></label>
@@ -308,6 +362,26 @@
         type="text"
         placeholder="Same as paper (e.g. English)"
       />
+    </html:div>
+  </groupbox>
+
+  <!-- ============ Learning ============ -->
+  <groupbox data-tab="tags">
+    <label><html:h2>Learning from your edits</html:h2></label>
+    <checkbox
+      data-pref="learn.enabled"
+      label="Remember tags I remove and replacements I make"
+    />
+    <html:p class="at-hint">
+      A tag is hidden after you remove it twice (minus the times you keep it). A
+      replacement, such as ML becoming machine learning, is applied after you
+      make it twice. This covers the review window and the item pane.
+    </html:p>
+    <html:p class="at-preview" id="at-learn-summary"></html:p>
+    <html:div class="at-row">
+      <html:button id="at-learn-clear" type="button"
+        >Forget everything learned</html:button
+      >
     </html:div>
   </groupbox>
 

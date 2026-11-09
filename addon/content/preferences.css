@@ -117,3 +117,6 @@
   background: color-mix(in srgb, currentColor 8%, transparent);
   font-size: 12px;
 }
+.at-preview {
+  white-space: pre-wrap;
+}

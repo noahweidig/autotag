@@ -11,7 +11,11 @@ import {
   getTagOptions,
   type TagMode,
 } from "./autotagPrefs";
-import { applyTags, collectSuggestions } from "./autotagCore";
+import {
+  applyTags,
+  collectSuggestions,
+  learnFromFeedback,
+} from "./autotagCore";
 import { getItemMetadata } from "./autotagItems";
 import { getLocaleID } from "../utils/locale";
 
@@ -108,12 +112,24 @@ function draw(v: View): void {
       b.disabled = !v.editable || st.busy;
       b.title = `Add tag (from ${c.source})`;
       b.append(
-        el(doc, "span", "autotag-chip-plus", "+ "),
-        doc.createTextNode(c.tag),
+        el(doc, "span", "autotag-chip-plus", "+"),
+        el(doc, "span", "autotag-chip-text", c.tag),
       );
-      b.append(el(doc, "small", "autotag-chip-src", c.source));
+      if (c.source) b.append(el(doc, "span", "autotag-chip-src", c.source));
       b.addEventListener("click", () => void accept(v, [c.tag]));
-      wrap.append(b);
+      const x = el(
+        doc,
+        "button",
+        "autotag-chip-x",
+        "\u00d7",
+      ) as HTMLButtonElement;
+      x.type = "button";
+      x.disabled = st.busy;
+      x.title = "Not useful: hide, and suggest it less in future";
+      x.addEventListener("click", () => reject(v, c.tag));
+      const row = el(doc, "div", "autotag-chip-row");
+      row.append(b, x);
+      wrap.append(row);
     }
     root.append(wrap);
     const acts = el(doc, "div", "autotag-section-bar");
@@ -150,10 +166,20 @@ async function accept(v: View, tags: string[]): Promise<void> {
     st.chips = (st.chips || []).filter((c) => !done.has(c.tag.toLowerCase()));
     st.message = "";
     st.error = false;
+    learnFromFeedback([{ suggested: tags, final: tags }]);
   } catch (e: any) {
     st.message = `Could not add tags: ${e?.message || e}`;
     st.error = true;
   }
+  redraw(v);
+}
+
+function reject(v: View, tag: string): void {
+  const st = stateOf(v.item.id);
+  st.chips = (st.chips || []).filter(
+    (c) => c.tag.toLowerCase() !== tag.toLowerCase(),
+  );
+  learnFromFeedback([{ suggested: [tag], final: [] }]);
   redraw(v);
 }
 
@@ -170,7 +196,7 @@ async function suggest(v: View, mode: TagMode): Promise<void> {
     }
   } else {
     const o = getSourceOptions();
-    if (!o.openalex && !o.crossref && !o.pubmed && !o.local) {
+    if (!o.library && !o.openalex && !o.crossref && !o.pubmed && !o.local) {
       st.message =
         "No free source is enabled. See Settings > Autotag > Free sources.";
       st.error = true;
@@ -202,7 +228,7 @@ async function suggest(v: View, mode: TagMode): Promise<void> {
       tag,
       source: src[tag.toLowerCase()] || "",
     }));
-    st.message = out.errors.length ? out.errors.join(" ") : "";
+    st.message = [...out.errors, ...out.notes].join(" ");
     st.error = !!out.errors.length;
   } catch (e: any) {
     st.message = String(e?.message || e);
