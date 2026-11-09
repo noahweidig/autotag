@@ -2,12 +2,20 @@
   <html:div class="at-header">
     <html:h1>Autotag</html:h1>
     <html:p class="at-hint">
-      Generate tags for selected items with an LLM. Changes save automatically.
+      Tag selected items from free metadata sources, an LLM, or both. Changes
+      save automatically.
     </html:p>
   </html:div>
 
+  <html:div class="at-tabs" id="at-tabs" role="tablist">
+    <html:button type="button" data-tab-btn="general">General</html:button>
+    <html:button type="button" data-tab-btn="free">Free sources</html:button>
+    <html:button type="button" data-tab-btn="ai">AI</html:button>
+    <html:button type="button" data-tab-btn="tags">Tag rules</html:button>
+  </html:div>
+
   <!-- ============ Provider ============ -->
-  <groupbox>
+  <groupbox data-tab="ai">
     <label><html:h2>Provider</html:h2></label>
 
     <html:div class="at-row">
@@ -63,8 +71,31 @@
     </html:div>
   </groupbox>
 
+  <!-- ============ Method ============ -->
+  <groupbox data-tab="general">
+    <label><html:h2>Tagging method</html:h2></label>
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-mode">Use</html:label>
+      <menulist id="at-mode" data-pref="source.mode" native="true">
+        <menupopup>
+          <menuitem label="AI model only" value="ai" />
+          <menuitem
+            label="Free sources only (no AI, no API key)"
+            value="free"
+          />
+          <menuitem label="Free sources and AI together" value="both" />
+        </menupopup>
+      </menulist>
+    </html:div>
+    <html:p class="at-hint indent" id="at-mode-hint"></html:p>
+    <html:p class="at-hint">
+      The item right-click menu also has "Suggest tags without AI" and "Generate
+      tags with AI", which ignore this setting for that run.
+    </html:p>
+  </groupbox>
+
   <!-- ============ Workflow ============ -->
-  <groupbox>
+  <groupbox data-tab="general">
     <label><html:h2>Workflow</html:h2></label>
     <checkbox
       data-pref="workflow.review"
@@ -101,8 +132,99 @@
     </html:p>
   </groupbox>
 
+  <!-- ============ Free sources ============ -->
+  <groupbox data-tab="free">
+    <label><html:h2>Lookup by DOI</html:h2></label>
+    <html:p class="at-hint">
+      Only the DOI is sent. Items without a DOI use the offline extractor below.
+    </html:p>
+    <checkbox
+      data-pref="source.openalex"
+      label="OpenAlex: keywords and research subfield (all disciplines)"
+    />
+    <html:div class="at-row" data-needs="openalex">
+      <html:label class="at-label" for="at-oa-score"
+        >Min keyword score</html:label
+      >
+      <html:input
+        id="at-oa-score"
+        data-pref="source.openalexMinScore"
+        type="text"
+        class="at-num"
+        placeholder="0.5"
+      />
+      <html:span class="at-hint">0 to 1, higher = fewer, safer tags</html:span>
+    </html:div>
+    <checkbox
+      data-pref="source.openalexSubfield"
+      label="Also add the broad subfield (e.g. Artificial Intelligence)"
+    />
+    <html:div class="at-row" data-needs="openalex">
+      <html:label class="at-label" for="at-oa-key">OpenAlex API key</html:label>
+      <html:input
+        id="at-oa-key"
+        data-pref="source.openalexKey"
+        type="password"
+        class="at-wide"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="optional"
+      />
+    </html:div>
+    <html:p class="at-hint indent" data-needs="openalex">
+      OpenAlex limits anonymous use per network IP address. If you see rate
+      limit errors, add a free key from openalex.org.
+    </html:p>
+    <checkbox
+      data-pref="source.pubmed"
+      label="PubMed: MeSH headings and author keywords (biomedical papers)"
+    />
+    <checkbox
+      data-pref="source.crossref"
+      label="Crossref: journal subject categories (often empty, coarse)"
+    />
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-contact">Contact email</html:label>
+      <html:input
+        id="at-contact"
+        data-pref="source.contact"
+        type="text"
+        class="at-wide"
+        placeholder="optional, sent to these APIs for polite-pool access"
+      />
+    </html:div>
+  </groupbox>
+
+  <groupbox data-tab="free">
+    <label><html:h2>Offline keyword extraction</html:h2></label>
+    <html:p class="at-hint">
+      Runs on your computer from the title and abstract (English). Nothing is
+      sent anywhere.
+    </html:p>
+    <checkbox
+      data-pref="source.local"
+      label="Extract keywords from title and abstract"
+    />
+    <checkbox
+      data-pref="source.localOnlyFallback"
+      label="Only when the lookups above found nothing for that item"
+    />
+    <html:div class="at-row">
+      <html:label class="at-label" for="at-local-max">Max keywords</html:label>
+      <html:input
+        id="at-local-max"
+        data-pref="source.localMax"
+        data-type="int"
+        type="number"
+        min="1"
+        max="20"
+        class="at-num"
+      />
+    </html:div>
+  </groupbox>
+
   <!-- ============ Content ============ -->
-  <groupbox>
+  <groupbox data-tab="ai">
     <label><html:h2>What is sent to the model</html:h2></label>
     <html:div class="at-grid">
       <checkbox data-pref="content.includeTitle" label="Title" />
@@ -139,7 +261,7 @@
   </groupbox>
 
   <!-- ============ Vocabulary ============ -->
-  <groupbox>
+  <groupbox data-tab="tags">
     <label><html:h2>Tag vocabulary</html:h2></label>
     <html:label class="at-label-block" for="at-seeds"
       >Seed keywords (comma separated)</html:label
@@ -186,7 +308,7 @@
   </groupbox>
 
   <!-- ============ Cleanup ============ -->
-  <groupbox>
+  <groupbox data-tab="tags">
     <label><html:h2>Tag cleanup</html:h2></label>
     <html:p class="at-hint">
       Applied to every tag before review and again after your edits.
@@ -312,7 +434,7 @@
   </groupbox>
 
   <!-- ============ Prompt ============ -->
-  <groupbox>
+  <groupbox data-tab="ai">
     <label><html:h2>Prompt</html:h2></label>
     <html:div class="at-row">
       <html:label class="at-label" for="at-preset">Start from</html:label>
@@ -331,7 +453,7 @@
   </groupbox>
 
   <!-- ============ Advanced ============ -->
-  <groupbox>
+  <groupbox data-tab="ai">
     <label><html:h2>Advanced</html:h2></label>
     <html:div class="at-row">
       <html:label class="at-label" for="at-batch">Items per request</html:label>

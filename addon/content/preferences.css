@@ -82,3 +82,38 @@
 .autotag-pane [hidden] {
   display: none !important;
 }
+
+.at-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 12px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+}
+.at-tabs button {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 6px 12px;
+  margin: 0 0 -1px;
+  font: inherit;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+}
+.at-tabs button:hover {
+  opacity: 1;
+}
+.at-tabs button[aria-selected="true"] {
+  opacity: 1;
+  font-weight: 600;
+  border-bottom-color: var(--accent-blue, #4072e5);
+}
+.at-banner {
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  font-size: 12px;
+}

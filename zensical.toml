@@ -12,6 +12,7 @@ nav = [
   { "Install" = "install.md" },
   { "Set up a provider" = "providers.md" },
   { "Tag your items" = "usage.md" },
+  { "Tag without AI" = "free-sources.md" },
   { "Tag Manager" = "tag-manager.md" },
   { "Settings" = "settings.md" },
   { "Privacy" = "privacy.md" },

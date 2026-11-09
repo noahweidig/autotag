@@ -208,7 +208,36 @@ export function initPrefsPane(win: any): void {
   const sample = $("at-sample");
   const preview = $("at-preview");
 
+  const MODE_HINTS: Record<string, string> = {
+    ai: "Each item's metadata is sent to your chosen AI provider.",
+    free: "No AI and no API key. Tags come from OpenAlex, PubMed, Crossref and offline extraction (see Free sources).",
+    both: "Free-source tags and AI tags are merged, cleaned and reviewed together.",
+  };
+
+  /* ---------- tabs ---------- */
+  const tabs = ["general", "free", "ai", "tags"];
+  const showTab = (name: string) => {
+    if (!tabs.includes(name)) name = "general";
+    root
+      .querySelectorAll("[data-tab]")
+      .forEach((e: any) => (e.hidden = e.dataset.tab !== name));
+    root.querySelectorAll("[data-tab-btn]").forEach((b: any) => {
+      b.setAttribute("aria-selected", String(b.dataset.tabBtn === name));
+    });
+    setPrefRaw("ui.tab", name);
+  };
+  root
+    .querySelectorAll("[data-tab-btn]")
+    .forEach((b: any) =>
+      b.addEventListener("click", () => showTab(b.dataset.tabBtn)),
+    );
+
   function refresh() {
+    const mode = getStr("source.mode", "ai");
+    $("at-mode-hint").textContent = MODE_HINTS[mode] || MODE_HINTS.ai;
+    root
+      .querySelectorAll('[data-needs="openalex"]')
+      .forEach((e: any) => (e.hidden = !getBool("source.openalex", true)));
     const show = (sel: string, visible: boolean) =>
       root.querySelectorAll(sel).forEach((e: any) => (e.hidden = !visible));
     show('[data-needs="pdf"]', getBool("content.includePdfText", false));
@@ -235,5 +264,6 @@ export function initPrefsPane(win: any): void {
 
   renderProvider();
   refresh();
+  showTab(getStr("ui.tab", "general"));
   void getPrefRaw;
 }

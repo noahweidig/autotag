@@ -5,17 +5,18 @@ import { getGenerationOptions } from "../autotagPrefs";
 export const SYSTEM_JSON =
   "You are a careful assistant that ALWAYS returns ONLY valid JSON and no other text.";
 
-export async function httpJson(
+export async function httpText(
   method: "GET" | "POST",
   url: string,
   headers: Record<string, string>,
   body?: unknown,
   timeoutMs?: number,
-): Promise<any> {
+  accept = "application/json",
+): Promise<string> {
   let response: any;
   try {
     response = await Zotero.HTTP.request(method, url, {
-      headers: { Accept: "application/json", ...headers },
+      headers: { Accept: accept, ...headers },
       body: body === undefined ? undefined : JSON.stringify(body),
       timeout: timeoutMs ?? getGenerationOptions().timeoutMs,
     });
@@ -36,6 +37,17 @@ export async function httpJson(
   }
   const raw = response?.responseText;
   if (!raw) throw new Error("Empty response from server");
+  return raw;
+}
+
+export async function httpJson(
+  method: "GET" | "POST",
+  url: string,
+  headers: Record<string, string>,
+  body?: unknown,
+  timeoutMs?: number,
+): Promise<any> {
+  const raw = await httpText(method, url, headers, body, timeoutMs);
   try {
     return JSON.parse(raw);
   } catch {

@@ -66,7 +66,20 @@ pref("cleanup.ignored", "");
 pref("seedKeywords", "");
 pref("finalPrompt", "");
 
+pref("source.mode", "ai");
+pref("source.openalex", true);
+pref("source.openalexKey", "");
+pref("source.openalexMinScore", "0.5");
+pref("source.openalexSubfield", true);
+pref("source.crossref", false);
+pref("source.pubmed", false);
+pref("source.local", true);
+pref("source.localMax", 5);
+pref("source.localOnlyFallback", true);
+pref("source.contact", "");
+
 pref("workflow.review", true);
 pref("workflow.debug", false);
 pref("ui.toolsMenu", true);
 pref("ui.itemMenu", true);
+pref("ui.tab", "general");

@@ -48,6 +48,14 @@
       const chip = document.createElement("span");
       chip.className = "chip";
       chip.append(document.createTextNode(tag));
+      const src = row.sources && row.sources[tag.toLowerCase()];
+      if (src) {
+        const badge = document.createElement("small");
+        badge.className = "src";
+        badge.textContent = src;
+        badge.title = "Suggested by " + src;
+        chip.append(badge);
+      }
       const x = document.createElement("button");
       x.type = "button";
       x.textContent = "×";
