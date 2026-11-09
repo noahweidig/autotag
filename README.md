@@ -13,7 +13,7 @@ It is built for people who rely on Zotero every day and have reached the point w
 
 ## What's NEW
 
-### Unreleased
+### v0.1.0
 
 - **Tag without AI.** New Tagging method setting and a "Suggest tags without AI" menu entry. Sources: OpenAlex keywords, PubMed MeSH and author keywords, Crossref subjects (all by DOI), plus offline keyword extraction from title and abstract. No API key needed. See the docs page "Tag without AI".
 - Run on a whole collection from the collection right-click menu.
