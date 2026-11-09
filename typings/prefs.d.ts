@@ -79,6 +79,12 @@ declare namespace _ZoteroTypes {
       "source.localMax": number;
       "source.localOnlyFallback": boolean;
       "source.contact": string;
+      "source.library": boolean;
+      "source.libraryK": number;
+      "source.libraryMax": number;
+      "source.libraryMinItems": number;
+      "learn.enabled": boolean;
+      "learn.data": string;
       "workflow.review": boolean;
       "workflow.debug": boolean;
       "ui.toolsMenu": boolean;

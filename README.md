@@ -13,6 +13,12 @@ It is built for people who rely on Zotero every day and have reached the point w
 
 ## What's NEW
 
+### v0.2.0
+
+- **Suggest from your own library, no AI.** Each item's title and abstract is compared with your already-tagged items (TF-IDF nearest neighbours) and it proposes the tags its closest matches carry, so suggestions use your vocabulary. Offline. Needs a few tagged items to start (30 by default) and works best with a few hundred.
+- **Learns from your edits.** Tags you remove in the review window or reject in the item pane (the x button) are hidden after two net removals. Replacements you make, such as ML becoming machine learning, are applied after you make them twice. View or clear what it learned under Settings > Tag rules.
+- Item pane suggestions are laid out as one row per tag.
+
 ### v0.1.1
 
 - Item pane section uses a monochrome tag icon.

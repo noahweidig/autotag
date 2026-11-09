@@ -78,6 +78,13 @@ pref("source.localMax", 5);
 pref("source.localOnlyFallback", true);
 pref("source.contact", "");
 
+pref("source.library", true);
+pref("source.libraryK", 8);
+pref("source.libraryMax", 6);
+pref("source.libraryMinItems", 30);
+pref("learn.enabled", true);
+pref("learn.data", "");
+
 pref("workflow.review", true);
 pref("workflow.debug", false);
 pref("ui.toolsMenu", true);

@@ -12,9 +12,10 @@ import {
 } from "./sourceParsers";
 import type { SourceOptions } from "./autotagPrefs";
 
-export type SourceId = "openalex" | "crossref" | "pubmed" | "local";
+export type SourceId = "library" | "openalex" | "crossref" | "pubmed" | "local";
 
 export const SOURCE_LABELS: Record<SourceId, string> = {
+  library: "Library",
   openalex: "OpenAlex",
   crossref: "Crossref",
   pubmed: "PubMed",
@@ -194,6 +195,7 @@ async function fetchPubmed(
 
 export function enabledSources(o: SourceOptions): SourceId[] {
   const out: SourceId[] = [];
+  if (o.library) out.push("library");
   if (o.openalex) out.push("openalex");
   if (o.crossref) out.push("crossref");
   if (o.pubmed) out.push("pubmed");
@@ -205,6 +207,8 @@ export async function suggestFromSources(
   items: SourceItem[],
   o: SourceOptions,
   onProgress?: (text: string, percent: number) => void,
+  /** Item keys that already have suggestions (skips the local fallback for them). */
+  prior: Set<string> = new Set(),
 ): Promise<SourceResult> {
   const res: SourceResult = { suggestions: new Map(), errors: [] };
   const withDoi = items
@@ -235,7 +239,11 @@ export async function suggestFromSources(
 
   if (o.local) {
     for (const it of items) {
-      if (o.localOnlyFallback && res.suggestions.get(it.key)?.length) continue;
+      if (
+        o.localOnlyFallback &&
+        (prior.has(it.key) || res.suggestions.get(it.key)?.length)
+      )
+        continue;
       add(
         res,
         it.key,

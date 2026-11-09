@@ -9,6 +9,8 @@ import {
   getFinalPrompt,
   getPrefRaw,
   getSelectedProvider,
+  clearLearned,
+  getLearned,
   getStr,
   getTagOptions,
   setPrefRaw,
@@ -17,6 +19,7 @@ import {
 import { PROVIDERS, getProviderInfo } from "./llmproviders/providerInfo";
 import { getLLMProviderById } from "./llmproviders";
 import { cleanTagList } from "./tagCleaner";
+import { summarize } from "./learning";
 
 const CUSTOM = "__custom__";
 
@@ -207,6 +210,24 @@ export function initPrefsPane(win: any): void {
   /* ---------- conditional rows + live cleanup preview ---------- */
   const sample = $("at-sample");
   const preview = $("at-preview");
+
+  function renderLearned() {
+    const s = summarize(getLearned());
+    const parts: string[] = [];
+    if (s.suppressed.length) parts.push(`Hidden: ${s.suppressed.join(", ")}`);
+    if (s.aliases.length)
+      parts.push(
+        `Replacements: ${s.aliases.map(([k, to]) => `${k} \u2192 ${to}`).join(", ")}`,
+      );
+    $("at-learn-summary").textContent = parts.length
+      ? parts.join("\n")
+      : "Nothing learned yet.";
+  }
+  $("at-learn-clear").addEventListener("click", () => {
+    clearLearned();
+    renderLearned();
+  });
+  renderLearned();
 
   const MODE_HINTS: Record<string, string> = {
     ai: "Each item's metadata is sent to your chosen AI provider.",

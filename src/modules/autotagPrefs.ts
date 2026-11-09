@@ -6,6 +6,7 @@ declare const Zotero: _ZoteroTypes.Zotero;
 declare const ChromeUtils: any;
 
 import { getProviderInfo } from "./llmproviders/providerInfo";
+import { parseLearned, type Learned } from "./learning";
 
 let ServicesAny: any = (Zotero as any)?.Services;
 if (!ServicesAny) {
@@ -84,6 +85,10 @@ export type SourceOptions = {
   localMax: number;
   localOnlyFallback: boolean;
   contact: string;
+  library: boolean;
+  libraryK: number;
+  libraryMax: number;
+  libraryMinItems: number;
 };
 
 /* ---------- raw helpers ---------- */
@@ -344,7 +349,29 @@ export function getSourceOptions(): SourceOptions {
     localMax: getInt("source.localMax", 5, 1),
     localOnlyFallback: getBool("source.localOnlyFallback", true),
     contact: getStr("source.contact").trim(),
+    library: getBool("source.library", true),
+    libraryK: getInt("source.libraryK", 8, 2),
+    libraryMax: getInt("source.libraryMax", 6, 1),
+    libraryMinItems: getInt("source.libraryMinItems", 30, 5),
   };
+}
+
+/* ---------- learning ---------- */
+
+export function isLearningEnabled(): boolean {
+  return getBool("learn.enabled", true);
+}
+
+export function getLearned(): Learned {
+  return parseLearned(getStr("learn.data"));
+}
+
+export function saveLearned(l: Learned): void {
+  setPrefRaw("learn.data", JSON.stringify(l));
+}
+
+export function clearLearned(): void {
+  setPrefRaw("learn.data", "");
 }
 
 export function isReviewEnabled(): boolean {

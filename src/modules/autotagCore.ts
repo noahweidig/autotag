@@ -10,8 +10,11 @@ import {
   getProviderConfigError,
   getPromptContentOptions,
   getSeedKeywords,
+  getLearned,
   getSourceOptions,
   getTagOptions,
+  isLearningEnabled,
+  saveLearned,
   isDebugEnabled,
   isReviewEnabled,
   openAutotagSettings,
@@ -25,6 +28,13 @@ import {
   type ItemMetadata,
 } from "./autotagItems";
 import { canonicalKey, cleanTagList } from "./tagCleaner";
+import { dropLibraryIndex, suggestFromLibrary } from "./libraryIndex";
+import {
+  isSuppressed,
+  recordFeedback,
+  resolveAlias,
+  type ItemFeedback,
+} from "./learning";
 import {
   SOURCE_LABELS,
   suggestFromSources,
@@ -258,6 +268,8 @@ async function runAi(
 
 export type Collected = {
   results: Map<string, string[]>;
+  /** Informational messages (not failures). */
+  notes: string[];
   sourcesFor: (key: string, tags: string[]) => Record<string, string>;
   errors: string[];
   ctx: { libraryTags: string[]; seeds: string[] };
@@ -285,6 +297,7 @@ export async function collectSuggestions(
   // raw suggestions per item, tagged with where they came from
   const raw = new Map<string, { tag: string; source: SourceId | "ai" }[]>();
   const errors: string[] = [];
+  const notes: string[] = [];
   const push = (key: string, tag: string, source: SourceId | "ai") => {
     const l = raw.get(key) || [];
     l.push({ tag, source });
@@ -296,9 +309,30 @@ export async function collectSuggestions(
     errors.push(...ai.errors);
     for (const [k, tags] of ai.tags) for (const x of tags) push(k, x, "ai");
   }
+  const fromLibrary = new Set<string>();
+  if (useFree && src.library) {
+    progress.update("Comparing with your tagged items...", 0);
+    try {
+      const lr = await suggestFromLibrary(metas, libraryID, src, t.marker);
+      if (lr.tooSmall)
+        notes.push(
+          `Library suggestions skipped: ${lr.indexed} tagged item(s), ${src.libraryMinItems} needed.`,
+        );
+      for (const [k, tags] of lr.suggestions) {
+        fromLibrary.add(k);
+        for (const x of tags) push(k, x, "library");
+      }
+    } catch (e: any) {
+      debug(`library suggestions failed: ${e?.stack || e}`);
+      errors.push(`Library: ${e?.message || e}`);
+    }
+  }
   if (useFree) {
-    const free = await suggestFromSources(metas, src, (text, pct) =>
-      progress.update(text, pct),
+    const free = await suggestFromSources(
+      metas,
+      src,
+      (text, pct) => progress.update(text, pct),
+      fromLibrary,
     );
     errors.push(...free.errors);
     for (const [k, l] of free.suggestions)
@@ -308,7 +342,13 @@ export async function collectSuggestions(
   const results = new Map<string, string[]>();
   const provenance = new Map<string, Map<string, string>>();
   const ctx = { libraryTags: lib.all, seeds };
-  for (const [key, list] of raw) {
+  const learned = isLearningEnabled() ? getLearned() : null;
+  for (const [key, rawList] of raw) {
+    const list = learned
+      ? rawList
+          .map((x) => ({ ...x, tag: resolveAlias(learned, x.tag) }))
+          .filter((x) => !isSuppressed(learned, x.tag))
+      : rawList;
     list.sort(
       (a, b) => SOURCE_ORDER.indexOf(a.source) - SOURCE_ORDER.indexOf(b.source),
     );
@@ -338,7 +378,17 @@ export async function collectSuggestions(
     return out;
   };
 
-  return { results, sourcesFor, errors, ctx };
+  return { results, notes, sourcesFor, errors, ctx };
+}
+
+/** Folds review edits into the learned corrections (no-op when learning is off). */
+export function learnFromFeedback(feedback: ItemFeedback[]): void {
+  if (!feedback.length || !isLearningEnabled()) return;
+  try {
+    saveLearned(recordFeedback(getLearned(), feedback));
+  } catch (e) {
+    debug(`could not save learned corrections: ${String(e)}`);
+  }
 }
 
 /* ---------- entry points ---------- */
@@ -352,6 +402,7 @@ export type RunOptions = {
 
 const SOURCE_ORDER: (SourceId | "ai")[] = [
   "ai",
+  "library",
   "pubmed",
   "openalex",
   "crossref",
@@ -381,7 +432,14 @@ export async function runAutotagForSelection(
   const useAi = mode === "ai" || mode === "both";
   const useFree = mode === "free" || mode === "both";
 
-  if (useFree && !src.openalex && !src.crossref && !src.pubmed && !src.local) {
+  if (
+    useFree &&
+    !src.library &&
+    !src.openalex &&
+    !src.crossref &&
+    !src.pubmed &&
+    !src.local
+  ) {
     const open = Services?.prompt?.confirm?.(
       win,
       "Autotag",
@@ -423,13 +481,8 @@ export async function runAutotagForSelection(
     for (const it of targets) metas.push(await getItemMetadata(it));
     const itemsByKey = new Map<string, any>(targets.map((it) => [it.key, it]));
 
-    const { results, sourcesFor, errors, ctx } = await collectSuggestions(
-      metas,
-      targets[0].libraryID,
-      mode,
-      t,
-      progress,
-    );
+    const { results, notes, sourcesFor, errors, ctx } =
+      await collectSuggestions(metas, targets[0].libraryID, mode, t, progress);
 
     let final = results;
     if (results.size && isReviewEnabled()) {
@@ -452,14 +505,22 @@ export async function runAutotagForSelection(
       final = new Map(
         reviewed.map((r) => [r.key, cleanTagList(r.tags, t, ctx)]),
       );
+      learnFromFeedback(
+        reviewed.map((r) => ({
+          suggested: results.get(r.key) || [],
+          final: final.get(r.key) || [],
+        })),
+      );
     }
 
     const done = await applyTags(itemsByKey, final, t);
+    dropLibraryIndex();
     const parts = [`Added ${done.tags} tag(s) to ${done.items} item(s).`];
     const empty = targets.length - results.size;
     if (empty > 0 && useFree && !useAi)
       parts.push(`${empty} item(s) had no suggestions.`);
     if (skipped) parts.push(`${skipped} already tagged, skipped.`);
+    parts.push(...notes);
     if (errors.length) parts.push(`${errors.length} problem(s).`);
     progress.finish(
       parts.join(" "),
