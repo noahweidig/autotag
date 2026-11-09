@@ -32,28 +32,44 @@ menuitem.autotag-menuitem .menu-iconic-icon {
 }
 .autotag-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 4px;
 }
 .autotag-chip {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px 8px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: 6px;
   background: color-mix(in srgb, currentColor 6%, transparent);
   font: inherit;
+  line-height: 1.35;
+  text-align: start;
   cursor: pointer;
 }
 .autotag-chip:hover:not([disabled]) {
   background: color-mix(in srgb, currentColor 14%, transparent);
 }
 .autotag-chip-plus {
+  flex: none;
   opacity: 0.6;
 }
+.autotag-chip-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .autotag-chip-src {
-  margin-left: 6px;
-  font-size: 0.75em;
-  opacity: 0.6;
+  flex: none;
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 0.8em;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  opacity: 0.75;
 }

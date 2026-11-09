@@ -108,10 +108,10 @@ function draw(v: View): void {
       b.disabled = !v.editable || st.busy;
       b.title = `Add tag (from ${c.source})`;
       b.append(
-        el(doc, "span", "autotag-chip-plus", "+ "),
-        doc.createTextNode(c.tag),
+        el(doc, "span", "autotag-chip-plus", "+"),
+        el(doc, "span", "autotag-chip-text", c.tag),
       );
-      b.append(el(doc, "small", "autotag-chip-src", c.source));
+      if (c.source) b.append(el(doc, "span", "autotag-chip-src", c.source));
       b.addEventListener("click", () => void accept(v, [c.tag]));
       wrap.append(b);
     }
