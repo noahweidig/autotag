@@ -68,10 +68,23 @@ declare namespace _ZoteroTypes {
       "cleanup.ignored": string;
       "seedKeywords": string;
       "finalPrompt": string;
+      "source.mode": string;
+      "source.openalex": boolean;
+      "source.openalexKey": string;
+      "source.openalexMinScore": string;
+      "source.openalexSubfield": boolean;
+      "source.crossref": boolean;
+      "source.pubmed": boolean;
+      "source.local": boolean;
+      "source.localMax": number;
+      "source.localOnlyFallback": boolean;
+      "source.contact": string;
       "workflow.review": boolean;
       "workflow.debug": boolean;
       "ui.toolsMenu": boolean;
       "ui.itemMenu": boolean;
+      "ui.tab": string;
+      "ui.itemPane": boolean;
     };
   }
 }

@@ -8,6 +8,8 @@ export type ReviewRow = {
   title: string;
   existing: string[];
   tags: string[];
+  /** lowercase tag -> where it came from ("AI", "OpenAlex", ...) */
+  sources?: Record<string, string>;
   apply: boolean;
 };
 
@@ -21,6 +23,7 @@ export function openReviewDialog(
       ...r,
       tags: [...r.tags],
       existing: [...r.existing],
+      sources: { ...(r.sources || {}) },
     })),
     accepted: false,
   };

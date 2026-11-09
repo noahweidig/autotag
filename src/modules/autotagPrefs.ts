@@ -70,6 +70,22 @@ export type TagOptions = {
   marker: string;
 };
 
+export type TagMode = "ai" | "free" | "both";
+
+export type SourceOptions = {
+  mode: TagMode;
+  openalex: boolean;
+  openalexKey: string;
+  openalexMinScore: number;
+  openalexSubfield: boolean;
+  crossref: boolean;
+  pubmed: boolean;
+  local: boolean;
+  localMax: number;
+  localOnlyFallback: boolean;
+  contact: string;
+};
+
 /* ---------- raw helpers ---------- */
 
 export function getPrefRaw(name: string): unknown {
@@ -309,6 +325,25 @@ export function getTagOptions(): TagOptions {
     reuseLibraryTags: getBool("tags.reuseLibraryTags", false),
     libraryVocabLimit: getInt("tags.libraryVocabLimit", 100, 1),
     marker: getStr("tags.marker").trim(),
+  };
+}
+
+export function getSourceOptions(): SourceOptions {
+  const m = getStr("source.mode", "ai");
+  const score = Number(getStr("source.openalexMinScore", "0.5"));
+  return {
+    mode: m === "free" || m === "both" ? m : "ai",
+    openalex: getBool("source.openalex", true),
+    openalexKey: getStr("source.openalexKey").trim(),
+    openalexMinScore:
+      Number.isFinite(score) && score >= 0 && score <= 1 ? score : 0.5,
+    openalexSubfield: getBool("source.openalexSubfield", true),
+    crossref: getBool("source.crossref", false),
+    pubmed: getBool("source.pubmed", false),
+    local: getBool("source.local", true),
+    localMax: getInt("source.localMax", 5, 1),
+    localOnlyFallback: getBool("source.localOnlyFallback", true),
+    contact: getStr("source.contact").trim(),
   };
 }
 

@@ -9,6 +9,10 @@ import {
   unregisterAutotagMenus,
 } from "./modules/autotagMenu";
 import { initPrefsPane } from "./modules/autotagPrefsPane";
+import {
+  registerItemPaneSection,
+  unregisterItemPaneSection,
+} from "./modules/autotagItemPane";
 
 const debug = (msg: string) => (Zotero as any).debug?.(`[Autotag] ${msg}`);
 
@@ -44,6 +48,14 @@ async function onStartup(): Promise<void> {
     debug(`preference pane registration failed: ${String(e)}`);
   }
 
+  if (getBool("ui.itemPane", true)) {
+    try {
+      registerItemPaneSection();
+    } catch (e) {
+      debug(`item pane section registration failed: ${String(e)}`);
+    }
+  }
+
   for (const win of Zotero.getMainWindows() as _ZoteroTypes.MainWindow[]) {
     await onMainWindowLoad(win);
   }
@@ -51,6 +63,13 @@ async function onStartup(): Promise<void> {
 
 async function onMainWindowLoad(win: _ZoteroTypes.MainWindow): Promise<void> {
   injectStyles(win);
+  try {
+    (win as any).MozXULElement?.insertFTLIfNeeded(
+      `${config.addonRef}-mainWindow.ftl`,
+    );
+  } catch (e) {
+    debug(`ftl insert failed: ${String(e)}`);
+  }
   registerAutotagMenus(win, {
     tools: getBool("ui.toolsMenu", true),
     item: getBool("ui.itemMenu", true),
@@ -62,6 +81,7 @@ async function onMainWindowUnload(win: Window): Promise<void> {
 }
 
 async function onShutdown(): Promise<void> {
+  unregisterItemPaneSection();
   for (const win of Zotero.getMainWindows() as _ZoteroTypes.MainWindow[]) {
     unregisterAutotagMenus(win);
     win.document.getElementById("autotag-stylesheet")?.remove();

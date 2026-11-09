@@ -10,11 +10,13 @@ import {
   getProviderConfigError,
   getPromptContentOptions,
   getSeedKeywords,
+  getSourceOptions,
   getTagOptions,
   isDebugEnabled,
   isReviewEnabled,
   openAutotagSettings,
   Services,
+  type TagMode,
   type TagOptions,
 } from "./autotagPrefs";
 import {
@@ -22,7 +24,12 @@ import {
   resolveRegularItems,
   type ItemMetadata,
 } from "./autotagItems";
-import { cleanTagList } from "./tagCleaner";
+import { canonicalKey, cleanTagList } from "./tagCleaner";
+import {
+  SOURCE_LABELS,
+  suggestFromSources,
+  type SourceId,
+} from "./metadataSources";
 import { openReviewDialog, type ReviewRow } from "./autotagReview";
 import { getLLMProvider } from "./llmproviders";
 import { parseTagResponse, type LLMItemTags } from "./llmJson";
@@ -153,7 +160,7 @@ async function getLibraryTags(libraryID: number, topN: number) {
 
 /* ---------- apply ---------- */
 
-async function applyTags(
+export async function applyTags(
   itemsByKey: Map<string, any>,
   finalTags: Map<string, string[]>,
   t: TagOptions,
@@ -184,10 +191,176 @@ async function applyTags(
   return { items: itemCount, tags: tagCount };
 }
 
-/* ---------- entry point ---------- */
+export type ProgressLike = {
+  update(text: string, percent?: number): void;
+};
+
+/* ---------- AI step ---------- */
+
+async function runAi(
+  metas: ItemMetadata[],
+  t: TagOptions,
+  lib: { all: string[]; top: string[] },
+  progress: ProgressLike,
+): Promise<{ tags: Map<string, string[]>; errors: string[] }> {
+  const provider = getLLMProvider();
+  const g = getGenerationOptions();
+  const vocab = t.reuseLibraryTags ? lib.top : [];
+  const tags = new Map<string, string[]>();
+  const errors: string[] = [];
+  const batches: ItemMetadata[][] = [];
+  for (let i = 0; i < metas.length; i += g.batchSize)
+    batches.push(metas.slice(i, i + g.batchSize));
+
+  const outputs: (LLMItemTags[] | null)[] = batches.map(() => null);
+  let completed = 0;
+  let fatal = false;
+  let next = 0;
+  const label = `${provider.name} (${getModelForProvider(provider.name)})`;
+  const worker = async () => {
+    while (!fatal && next < batches.length) {
+      const b = next++;
+      const prompt = buildPrompt({
+        items: batches[b],
+        basePrompt: getFinalPrompt(),
+        seeds: getSeedKeywords(),
+        vocab,
+        content: getPromptContentOptions(),
+        tags: t,
+      });
+      verbose(`prompt:\n${prompt}`);
+      try {
+        outputs[b] = await tagBatchWithRetry(prompt, batches[b]);
+      } catch (e: any) {
+        errors.push(`Batch ${b + 1}: ${e?.message || e}`);
+        debug(`batch ${b + 1} failed: ${e?.message || e}`);
+        if (/Authentication failed|not found/i.test(String(e?.message)))
+          fatal = true;
+      }
+      completed++;
+      progress.update(
+        `Asking ${label} - batch ${completed}/${batches.length}`,
+        Math.round((completed / batches.length) * 100),
+      );
+    }
+  };
+  progress.update(`Asking ${label} - ${batches.length} batch(es)`, 0);
+  await Promise.all(
+    Array.from({ length: Math.min(CONCURRENCY, batches.length) }, worker),
+  );
+  for (const out of outputs)
+    for (const r of out || [])
+      tags.set(r.key, [...(tags.get(r.key) || []), ...r.tags]);
+  return { tags, errors };
+}
+
+/* ---------- suggestion engine (no UI) ---------- */
+
+export type Collected = {
+  results: Map<string, string[]>;
+  sourcesFor: (key: string, tags: string[]) => Record<string, string>;
+  errors: string[];
+  ctx: { libraryTags: string[]; seeds: string[] };
+};
+
+export async function collectSuggestions(
+  metas: ItemMetadata[],
+  libraryID: number,
+  mode: TagMode,
+  t: TagOptions,
+  progress: ProgressLike,
+): Promise<Collected> {
+  const src = getSourceOptions();
+  const useAi = mode === "ai" || mode === "both";
+  const useFree = mode === "free" || mode === "both";
+  const lib =
+    t.reuseLibraryTags || t.mergeWithLibrary
+      ? await getLibraryTags(libraryID, t.libraryVocabLimit)
+      : { all: [], top: [] };
+  const seeds = getSeedKeywords()
+    .split(/[,\n;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  // raw suggestions per item, tagged with where they came from
+  const raw = new Map<string, { tag: string; source: SourceId | "ai" }[]>();
+  const errors: string[] = [];
+  const push = (key: string, tag: string, source: SourceId | "ai") => {
+    const l = raw.get(key) || [];
+    l.push({ tag, source });
+    raw.set(key, l);
+  };
+
+  if (useAi) {
+    const ai = await runAi(metas, t, lib, progress);
+    errors.push(...ai.errors);
+    for (const [k, tags] of ai.tags) for (const x of tags) push(k, x, "ai");
+  }
+  if (useFree) {
+    const free = await suggestFromSources(metas, src, (text, pct) =>
+      progress.update(text, pct),
+    );
+    errors.push(...free.errors);
+    for (const [k, l] of free.suggestions)
+      for (const s of l) push(k, s.tag, s.source);
+  }
+
+  const results = new Map<string, string[]>();
+  const provenance = new Map<string, Map<string, string>>();
+  const ctx = { libraryTags: lib.all, seeds };
+  for (const [key, list] of raw) {
+    list.sort(
+      (a, b) => SOURCE_ORDER.indexOf(a.source) - SOURCE_ORDER.indexOf(b.source),
+    );
+    const cleaned = cleanTagList(
+      list.map((x) => x.tag),
+      t,
+      ctx,
+    );
+    if (!cleaned.length) continue;
+    const byKey = new Map<string, string>();
+    for (const x of list) {
+      const one = cleanTagList([x.tag], { ...t, maxPerItem: 0 }, ctx)[0];
+      const k = one ? canonicalKey(one) : "";
+      if (k && !byKey.has(k))
+        byKey.set(k, x.source === "ai" ? "AI" : SOURCE_LABELS[x.source]);
+    }
+    results.set(key, cleaned);
+    provenance.set(key, byKey);
+  }
+  const sourcesFor = (key: string, tags: string[]) => {
+    const m = provenance.get(key);
+    const out: Record<string, string> = {};
+    for (const tag of tags) {
+      const label = m?.get(canonicalKey(tag));
+      if (label) out[tag.toLowerCase()] = label;
+    }
+    return out;
+  };
+
+  return { results, sourcesFor, errors, ctx };
+}
+
+/* ---------- entry points ---------- */
+
+export type RunOptions = {
+  /** Overrides the "Tagging method" setting for this run. */
+  mode?: TagMode;
+  /** Items to tag; defaults to the current selection. */
+  items?: any[];
+};
+
+const SOURCE_ORDER: (SourceId | "ai")[] = [
+  "ai",
+  "pubmed",
+  "openalex",
+  "crossref",
+  "local",
+];
 
 export async function runAutotagForSelection(
   win: _ZoteroTypes.MainWindow,
+  run: RunOptions = {},
 ): Promise<void> {
   if (running) {
     notify("Autotag", "A run is already in progress.", 3000);
@@ -195,14 +368,31 @@ export async function runAutotagForSelection(
   }
 
   const pane = (Zotero as any).getActiveZoteroPane?.();
-  const selected = resolveRegularItems(pane?.getSelectedItems?.() || []);
+  const selected = resolveRegularItems(
+    run.items || pane?.getSelectedItems?.() || [],
+  );
   if (!selected.length) {
     notify("Autotag", "Select one or more regular items first.", 4000, true);
     return;
   }
 
+  const src = getSourceOptions();
+  const mode: TagMode = run.mode || src.mode;
+  const useAi = mode === "ai" || mode === "both";
+  const useFree = mode === "free" || mode === "both";
+
+  if (useFree && !src.openalex && !src.crossref && !src.pubmed && !src.local) {
+    const open = Services?.prompt?.confirm?.(
+      win,
+      "Autotag",
+      "No free tag source is enabled.\n\nOpen Autotag settings now?",
+    );
+    if (open) openAutotagSettings(win);
+    return;
+  }
+
   const provider = getLLMProvider();
-  const cfgError = getProviderConfigError(provider.name);
+  const cfgError = useAi ? getProviderConfigError(provider.name) : null;
   if (cfgError) {
     const open = Services?.prompt?.confirm?.(
       win,
@@ -215,7 +405,6 @@ export async function runAutotagForSelection(
 
   running = true;
   const t = getTagOptions();
-  const g = getGenerationOptions();
   let progress: Progress | null = null;
   try {
     let targets = selected;
@@ -234,70 +423,13 @@ export async function runAutotagForSelection(
     for (const it of targets) metas.push(await getItemMetadata(it));
     const itemsByKey = new Map<string, any>(targets.map((it) => [it.key, it]));
 
-    const libraryID = targets[0].libraryID;
-    const lib =
-      t.reuseLibraryTags || t.mergeWithLibrary
-        ? await getLibraryTags(libraryID, t.libraryVocabLimit)
-        : { all: [], top: [] };
-    const vocab = t.reuseLibraryTags ? lib.top : [];
-    const seeds = getSeedKeywords()
-      .split(/[,\n;]+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    const results = new Map<string, string[]>();
-    const errors: string[] = [];
-    const batches: ItemMetadata[][] = [];
-    for (let i = 0; i < metas.length; i += g.batchSize)
-      batches.push(metas.slice(i, i + g.batchSize));
-
-    const outputs: (LLMItemTags[] | null)[] = batches.map(() => null);
-    let completed = 0;
-    let fatal = false;
-    let next = 0;
-    const worker = async () => {
-      while (!fatal && next < batches.length) {
-        const b = next++;
-        const prompt = buildPrompt({
-          items: batches[b],
-          basePrompt: getFinalPrompt(),
-          seeds: getSeedKeywords(),
-          vocab,
-          content: getPromptContentOptions(),
-          tags: t,
-        });
-        verbose(`prompt:\n${prompt}`);
-        try {
-          outputs[b] = await tagBatchWithRetry(prompt, batches[b]);
-        } catch (e: any) {
-          errors.push(`Batch ${b + 1}: ${e?.message || e}`);
-          debug(`batch ${b + 1} failed: ${e?.message || e}`);
-          if (/Authentication failed|not found/i.test(String(e?.message)))
-            fatal = true;
-        }
-        completed++;
-        progress!.update(
-          `Asking ${provider.name} (${getModelForProvider(provider.name)}) - batch ${completed}/${batches.length}`,
-          Math.round((completed / batches.length) * 100),
-        );
-      }
-    };
-    progress.update(
-      `Asking ${provider.name} (${getModelForProvider(provider.name)}) - ${batches.length} batch(es)`,
-      0,
+    const { results, sourcesFor, errors, ctx } = await collectSuggestions(
+      metas,
+      targets[0].libraryID,
+      mode,
+      t,
+      progress,
     );
-    await Promise.all(
-      Array.from({ length: Math.min(CONCURRENCY, batches.length) }, worker),
-    );
-    for (const out of outputs) {
-      for (const r of out || []) {
-        const cleaned = cleanTagList(r.tags, t, {
-          libraryTags: lib.all,
-          seeds,
-        });
-        results.set(r.key, [...(results.get(r.key) || []), ...cleaned]);
-      }
-    }
 
     let final = results;
     if (results.size && isReviewEnabled()) {
@@ -309,6 +441,7 @@ export async function runAutotagForSelection(
           title: m.title || "[untitled]",
           existing: m.tags,
           tags: results.get(m.key) || [],
+          sources: sourcesFor(m.key, results.get(m.key) || []),
           apply: true,
         }));
       const reviewed = openReviewDialog(win, rows, t);
@@ -317,17 +450,17 @@ export async function runAutotagForSelection(
         return;
       }
       final = new Map(
-        reviewed.map((r) => [
-          r.key,
-          cleanTagList(r.tags, t, { libraryTags: lib.all, seeds }),
-        ]),
+        reviewed.map((r) => [r.key, cleanTagList(r.tags, t, ctx)]),
       );
     }
 
     const done = await applyTags(itemsByKey, final, t);
     const parts = [`Added ${done.tags} tag(s) to ${done.items} item(s).`];
+    const empty = targets.length - results.size;
+    if (empty > 0 && useFree && !useAi)
+      parts.push(`${empty} item(s) had no suggestions.`);
     if (skipped) parts.push(`${skipped} already tagged, skipped.`);
-    if (errors.length) parts.push(`${errors.length} batch(es) failed.`);
+    if (errors.length) parts.push(`${errors.length} problem(s).`);
     progress.finish(
       parts.join(" "),
       errors.length ? 8000 : 5000,
@@ -337,7 +470,7 @@ export async function runAutotagForSelection(
     if (errors.length) {
       Services?.prompt?.alert?.(
         win,
-        "Autotag: some batches failed",
+        "Autotag: some lookups failed",
         errors.join("\n\n"),
       );
     }
@@ -348,4 +481,18 @@ export async function runAutotagForSelection(
   } finally {
     running = false;
   }
+}
+
+export async function runAutotagForCollection(
+  win: _ZoteroTypes.MainWindow,
+  run: Omit<RunOptions, "items"> = {},
+): Promise<void> {
+  const pane = (Zotero as any).getActiveZoteroPane?.();
+  const col = pane?.getSelectedCollection?.();
+  if (!col) {
+    notify("Autotag", "Select a collection first.", 4000, true);
+    return;
+  }
+  const items = col.getChildItems?.(false) || [];
+  await runAutotagForSelection(win, { ...run, items });
 }
