@@ -1,0 +1,99 @@
+/* Brand colors and landing-page hero; everything else uses Zensical's defaults. */
+:root,
+[data-md-color-scheme="default"],
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #5b5cf0;
+  --md-primary-fg-color--light: #7a7cf5;
+  --md-primary-fg-color--dark: #4a3fd0;
+  --md-primary-bg-color: #fff;
+  --md-accent-fg-color: #7a3cf0;
+}
+[data-md-color-scheme="slate"] {
+  --md-typeset-a-color: #9a9dff;
+}
+.at-hero {
+  text-align: center;
+  padding: 3.5rem 1rem 2.5rem;
+  margin: -0.5rem -0.8rem 2rem;
+}
+.at-hero__badge {
+  display: inline-grid;
+  place-items: center;
+  width: 5.5rem;
+  height: 5.5rem;
+  margin-bottom: 0.6rem;
+  border-radius: 1.2rem;
+  color: #fff;
+  background: linear-gradient(135deg, #4f7cff, #7a3cf0);
+  box-shadow: 0 0.6rem 1.6rem rgb(122 60 240 / 38%);
+}
+.at-hero__badge .twemoji {
+  display: grid;
+  place-items: center;
+  width: auto;
+  height: auto;
+}
+.at-hero__badge .twemoji svg {
+  width: 2.8rem;
+  height: 2.8rem;
+  max-height: none;
+  fill: currentcolor;
+}
+.at-hero h1 {
+  margin: 0.2rem 0 0.6rem;
+  font-size: clamp(2rem, 6vw, 3.4rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--md-default-fg-color);
+}
+.at-hero h1 .headerlink {
+  display: none;
+}
+.at-hero p.at-hero__lede {
+  max-width: 38rem;
+  margin: 0 auto 1.4rem;
+  font-size: 1.05rem;
+  color: var(--md-default-fg-color--light);
+}
+.at-hero .md-button {
+  margin: 0.25rem 0.2rem;
+}
+.at-hero .md-button .twemoji {
+  margin-inline-end: 0.35rem;
+}
+.at-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+  margin: 1.6rem auto 0;
+  max-width: 44rem;
+}
+.at-chips span {
+  padding: 0.15rem 0.65rem;
+  font-size: 0.72rem;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 2rem;
+  color: var(--md-default-fg-color--light);
+  background: var(--md-default-bg-color);
+}
+.at-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+  margin: 1.8rem 0 0;
+}
+.at-stats div {
+  min-width: 6rem;
+}
+.at-stats strong {
+  display: block;
+  font-size: 1.7rem;
+  line-height: 1.1;
+  color: var(--md-typeset-a-color);
+}
+.at-stats small {
+  color: var(--md-default-fg-color--light);
+}

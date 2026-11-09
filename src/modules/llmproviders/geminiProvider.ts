@@ -17,6 +17,11 @@ export const GeminiProvider: LLMProvider = {
     const generationConfig: any = {};
     if (g.temperature !== null) generationConfig.temperature = g.temperature;
     if (g.maxTokens > 0) generationConfig.maxOutputTokens = g.maxTokens;
+    // Thinking models spend most of the latency on reasoning; tagging doesn't need it.
+    if (/^gemini-3.*(flash|lite)/i.test(model))
+      generationConfig.thinkingConfig = { thinkingLevel: "minimal" };
+    else if (/^gemini-2\.5.*(flash|lite)/i.test(model))
+      generationConfig.thinkingConfig = { thinkingBudget: 0 };
     if (g.jsonMode) generationConfig.responseMimeType = "application/json";
 
     const data = await httpJson(
