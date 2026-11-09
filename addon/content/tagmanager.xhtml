@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
   <head>
     <meta charset="utf-8" />
@@ -93,13 +94,18 @@
 
       <section id="all" class="pane" hidden="hidden">
         <div class="toolbar">
-          <input id="q" type="search" placeholder="Search tags" />
-          <select id="sort">
+          <input
+            id="q"
+            type="search"
+            placeholder="Search tags"
+            aria-label="Search tags"
+          />
+          <select id="sort" aria-label="Sort tags">
             <option value="count">Most used</option>
             <option value="name">A to Z</option>
             <option value="few">Least used</option>
           </select>
-          <select id="filter">
+          <select id="filter" aria-label="Filter tags">
             <option value="all">All tags</option>
             <option value="once">Used once</option>
             <option value="multi">Used more than once</option>

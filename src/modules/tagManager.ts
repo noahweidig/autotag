@@ -320,7 +320,10 @@ function makeAPI(win: any) {
               count: counts.get(n) ?? 0,
             }));
             const first = members[0];
-            const best = members.reduce((a, m) => (m.count > a.count ? m : a));
+            const best = members.reduce(
+              (a, m) => (m.count > a.count ? m : a),
+              first,
+            );
             found.push({
               target: best.count > first.count ? best.name : first.name,
               members: [...members].sort(

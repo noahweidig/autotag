@@ -26,7 +26,7 @@ export function pickTarget(members: TagInfo[]): TagInfo {
 export function groupSignature(members: { name: string }[]): string {
   return members
     .map((m) => canonicalKey(m.name))
-    .sort()
+    .sort((a, b) => a.localeCompare(b))
     .join("|");
 }
 
@@ -47,7 +47,9 @@ function acronym(name: string): string {
 
 function sortedKey(name: string): string {
   const w = words(name);
-  return w.length >= 2 ? [...w].sort().join("") : "";
+  return w.length >= 2
+    ? [...w].sort((a, b) => a.localeCompare(b)).join("")
+    : "";
 }
 
 function maxEdits(len: number): number {
