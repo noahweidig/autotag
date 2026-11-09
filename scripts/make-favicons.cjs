@@ -88,4 +88,7 @@ const write = (name, data) => fs.writeFileSync(path.join(out, name), data);
 	}, null, 2) + '\n');
 	write('browserconfig.xml', `<?xml version="1.0" encoding="utf-8"?>\n<browserconfig><msapplication><tile><square150x150logo src="mstile-150x150.png"/><TileColor>${BLUE}</TileColor></tile></msapplication></browserconfig>\n`);
 	console.log('favicons written to docs/');
-})();
+})().catch(e => {
+	console.error(e);
+	process.exitCode = 1;
+});
