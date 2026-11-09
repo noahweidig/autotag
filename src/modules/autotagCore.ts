@@ -102,6 +102,29 @@ async function tagBatch(
   );
 }
 
+const CONCURRENCY = 3;
+const MAX_RETRIES = 3;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Retries rate limits and transient server errors with backoff. */
+async function tagBatchWithRetry(
+  prompt: string,
+  batch: ItemMetadata[],
+): Promise<LLMItemTags[]> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await tagBatch(prompt, batch);
+    } catch (e: any) {
+      const msg = String(e?.message || e);
+      if (attempt >= MAX_RETRIES || !/Rate limited|429|HTTP 5\d\d/.test(msg))
+        throw e;
+      const wait = 2000 * 2 ** attempt + Math.random() * 500;
+      debug(`retry ${attempt + 1} in ${Math.round(wait)}ms: ${msg}`);
+      await sleep(wait);
+    }
+  }
+}
+
 /* ---------- library vocabulary ---------- */
 
 async function getLibraryTags(libraryID: number, topN: number) {
@@ -228,32 +251,51 @@ export async function runAutotagForSelection(
     for (let i = 0; i < metas.length; i += g.batchSize)
       batches.push(metas.slice(i, i + g.batchSize));
 
-    for (let b = 0; b < batches.length; b++) {
-      progress.update(
-        `Asking ${provider.name} (${getModelForProvider(provider.name)}) - batch ${b + 1}/${batches.length}`,
-        Math.round((b / batches.length) * 100),
-      );
-      const prompt = buildPrompt({
-        items: batches[b],
-        basePrompt: getFinalPrompt(),
-        seeds: getSeedKeywords(),
-        vocab,
-        content: getPromptContentOptions(),
-        tags: t,
-      });
-      verbose(`prompt:\n${prompt}`);
-      try {
-        for (const r of await tagBatch(prompt, batches[b])) {
-          const cleaned = cleanTagList(r.tags, t, {
-            libraryTags: lib.all,
-            seeds,
-          });
-          results.set(r.key, [...(results.get(r.key) || []), ...cleaned]);
+    const outputs: (LLMItemTags[] | null)[] = batches.map(() => null);
+    let completed = 0;
+    let fatal = false;
+    let next = 0;
+    const worker = async () => {
+      while (!fatal && next < batches.length) {
+        const b = next++;
+        const prompt = buildPrompt({
+          items: batches[b],
+          basePrompt: getFinalPrompt(),
+          seeds: getSeedKeywords(),
+          vocab,
+          content: getPromptContentOptions(),
+          tags: t,
+        });
+        verbose(`prompt:\n${prompt}`);
+        try {
+          outputs[b] = await tagBatchWithRetry(prompt, batches[b]);
+        } catch (e: any) {
+          errors.push(`Batch ${b + 1}: ${e?.message || e}`);
+          debug(`batch ${b + 1} failed: ${e?.message || e}`);
+          if (/Authentication failed|not found/i.test(String(e?.message)))
+            fatal = true;
         }
-      } catch (e: any) {
-        errors.push(`Batch ${b + 1}: ${e?.message || e}`);
-        debug(`batch ${b + 1} failed: ${e?.message || e}`);
-        if (/Authentication failed|not found/i.test(String(e?.message))) break;
+        completed++;
+        progress!.update(
+          `Asking ${provider.name} (${getModelForProvider(provider.name)}) - batch ${completed}/${batches.length}`,
+          Math.round((completed / batches.length) * 100),
+        );
+      }
+    };
+    progress.update(
+      `Asking ${provider.name} (${getModelForProvider(provider.name)}) - ${batches.length} batch(es)`,
+      0,
+    );
+    await Promise.all(
+      Array.from({ length: Math.min(CONCURRENCY, batches.length) }, worker),
+    );
+    for (const out of outputs) {
+      for (const r of out || []) {
+        const cleaned = cleanTagList(r.tags, t, {
+          libraryTags: lib.all,
+          seeds,
+        });
+        results.set(r.key, [...(results.get(r.key) || []), ...cleaned]);
       }
     }
 

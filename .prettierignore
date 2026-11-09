@@ -7,3 +7,8 @@ yarn.lock
 pnpm-lock.yaml
 .scaffold
 coverage
+site
+docs
+overrides
+scripts/make-favicons.cjs
+docs-requirements.in

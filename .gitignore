@@ -27,4 +27,5 @@ README_old.md
 *.xpi
 xpi_backup/
 build/
-dist/
+dist/site/
+.venv/

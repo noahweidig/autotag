@@ -30,6 +30,7 @@
     "test": "zotero-plugin test",
     "update-deps": "npm update --save",
     "typecheck": "tsc --noEmit",
+    "docs": "zensical build --clean",
     "test:unit": "vitest run",
     "check": "npm run typecheck && npm run lint:check && npm run test:unit"
   },
