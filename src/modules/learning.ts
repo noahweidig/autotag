@@ -174,7 +174,7 @@ export function summarize(l: Learned): {
   const suppressed = Object.keys(l.rejected)
     .filter((k) => isSuppressed(l, l.rejected[k].tag))
     .map((k) => l.rejected[k].tag)
-    .sort();
+    .sort((a, b) => a.localeCompare(b));
   const aliases = Object.entries(l.aliases)
     .filter(([, a]) => a.n >= ALIAS_AFTER)
     .map(([k, a]) => [k, a.to, a.n] as [string, string, number])
