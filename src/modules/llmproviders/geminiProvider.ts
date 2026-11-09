@@ -38,6 +38,10 @@ export const GeminiProvider: LLMProvider = {
     return text;
   },
 
+  generateJson(prompt) {
+    return this.generateTags(prompt);
+  },
+
   async listModels() {
     const data = await httpJson(
       "GET",

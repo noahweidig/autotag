@@ -61,6 +61,11 @@ declare namespace _ZoteroTypes {
       "tags.maxLength": number;
       "tags.blacklist": string;
       "tags.replacements": string;
+      "cleanup.maxTagsPerRequest": number;
+      "cleanup.maxRequests": number;
+      "cleanup.anchorCount": number;
+      "cleanup.reviewed": string;
+      "cleanup.ignored": string;
       "seedKeywords": string;
       "finalPrompt": string;
       "workflow.review": boolean;

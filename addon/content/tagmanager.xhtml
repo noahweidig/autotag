@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Autotag: Tag Manager</title>
+    <link rel="stylesheet" href="chrome://autotag/content/tagmanager.css" />
+  </head>
+  <body>
+    <header>
+      <div class="row">
+        <h1>Tag Manager</h1>
+        <span id="lib" class="pill"></span>
+      </div>
+      <p class="sub" id="stats">Loading tags...</p>
+      <nav class="tabs">
+        <button class="tab active" type="button" data-tab="suggest">
+          Suggestions
+        </button>
+        <button class="tab" type="button" data-tab="all">All tags</button>
+      </nav>
+    </header>
+
+    <main>
+      <section id="suggest" class="pane">
+        <div class="scans">
+          <div class="scan">
+            <h3>Duplicates</h3>
+            <p>
+              Case, plurals, typos, word order and abbreviations. Runs on your
+              computer. Nothing is sent anywhere.
+            </p>
+            <button id="scan-dup" type="button">Scan</button>
+          </div>
+          <div class="scan">
+            <h3>Formatting</h3>
+            <p>
+              Apply your Autotag tag settings (case, separators, replacement
+              rules) to tags you already have. Runs locally.
+            </p>
+            <button id="scan-fmt" type="button">Scan</button>
+          </div>
+          <div class="scan ai">
+            <h3>Similar meaning <span class="badge ai">AI</span></h3>
+            <p id="ai-plan">Checking budget...</p>
+            <div class="row">
+              <button id="scan-ai" type="button" class="primary">
+                Scan with AI
+              </button>
+              <button id="budget-toggle" type="button" class="link">
+                Budget
+              </button>
+            </div>
+            <div id="budget" hidden="hidden">
+              <label>
+                Tags per request
+                <input id="b-tags" type="number" min="20" max="500" />
+              </label>
+              <label>
+                Max requests per scan
+                <input id="b-req" type="number" min="1" max="10" />
+              </label>
+              <button id="b-reset" type="button" class="link">
+                Forget checked tags
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="progress" hidden="hidden">
+          <div class="bar"><div id="bar-fill"></div></div>
+          <div class="row">
+            <span id="progress-text"></span>
+            <button id="cancel-scan" type="button">Cancel</button>
+          </div>
+        </div>
+        <div id="notice" class="notice" hidden="hidden"></div>
+
+        <div id="sug-head" class="list-head" hidden="hidden">
+          <span id="sug-title"></span>
+          <span class="row">
+            <button id="sug-all" type="button" class="link">Select all</button>
+            <button id="sug-none" type="button" class="link">
+              Select none
+            </button>
+          </span>
+        </div>
+        <div id="sug-list"></div>
+        <div id="sug-empty" class="empty">
+          Run a scan to find tags that can be merged. Nothing changes until you
+          press Merge, and every merge can be undone.
+        </div>
+      </section>
+
+      <section id="all" class="pane" hidden="hidden">
+        <div class="toolbar">
+          <input id="q" type="search" placeholder="Search tags" />
+          <select id="sort">
+            <option value="count">Most used</option>
+            <option value="name">A to Z</option>
+            <option value="few">Least used</option>
+          </select>
+          <select id="filter">
+            <option value="all">All tags</option>
+            <option value="once">Used once</option>
+            <option value="multi">Used more than once</option>
+          </select>
+          <button id="pick-shown" type="button" class="link">
+            Select shown
+          </button>
+        </div>
+        <div id="selbar" class="selbar" hidden="hidden">
+          <span id="sel-count"></span>
+          <label>
+            Into
+            <input id="sel-target" list="sel-options" />
+            <datalist id="sel-options"></datalist>
+          </label>
+          <button id="sel-merge" type="button" class="primary">Merge</button>
+          <button id="sel-delete" type="button" class="danger">Delete</button>
+          <button id="sel-clear" type="button" class="link">Clear</button>
+        </div>
+        <div id="tag-list"></div>
+        <div class="more-row">
+          <button id="more" type="button" hidden="hidden">Show more</button>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <button id="undo" type="button" disabled="disabled">Undo</button>
+      <span id="status"></span>
+      <span class="spacer"></span>
+      <button id="close" type="button">Close</button>
+      <button id="merge-selected" type="button" class="primary">Merge</button>
+    </footer>
+    <script src="chrome://autotag/content/tagmanager.js"></script>
+  </body>
+</html>
