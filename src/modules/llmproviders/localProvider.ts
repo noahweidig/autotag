@@ -213,8 +213,56 @@ async function callOllamaGenerate(
   return parseServerResponse(raw);
 }
 
+async function callOllamaJson(
+  base: string,
+  model: string,
+  prompt: string,
+): Promise<string> {
+  const g = getGenerationOptions();
+  let response;
+  try {
+    response = await Zotero.HTTP.request("POST", `${base}/api/generate`, {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        prompt,
+        stream: false,
+        format: "json",
+        options: {
+          temperature: 0,
+          ...(g.maxTokens > 0 ? { num_predict: g.maxTokens } : {}),
+        },
+      }),
+      timeout: Math.max(g.timeoutMs, 300000),
+    });
+  } catch (err: any) {
+    throw new Error(
+      `Connected to Ollama at ${base}, but failed to generate a response. ${err?.message || String(err)}`,
+    );
+  }
+  const raw = (response as any).responseText;
+  if (!raw) throw new Error("Empty response from local model server");
+  return parseServerResponse(raw);
+}
+
 export const LocalProvider: LLMProvider = {
   name: "local",
+
+  async generateJson(prompt: string): Promise<string> {
+    const model = getModelForProvider("local").trim();
+    if (!model) {
+      throw new Error(
+        "No local model selected. Open Autotag settings and enter a model name.",
+      );
+    }
+    const base = await detectOllamaBase();
+    if (!base) {
+      throw new Error(
+        `Cannot connect to Ollama at ${getBaseUrlForProvider("local")}. Make sure it is running.`,
+      );
+    }
+    return callOllamaJson(base, model, prompt);
+  },
 
   async listModels() {
     const base = await detectOllamaBase();

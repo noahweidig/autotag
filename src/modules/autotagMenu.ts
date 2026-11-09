@@ -6,11 +6,13 @@ declare const Zotero: _ZoteroTypes.Zotero;
 
 import { openAutotagSettings } from "./autotagPrefs";
 import { runAutotagForSelection } from "./autotagCore";
+import { openTagManager } from "./tagManager";
 
 const IDS = [
   "autotag-tools-sep",
   "autotag-settings-menuitem",
   "autotag-run-menuitem",
+  "autotag-manager-menuitem",
   "autotag-item-sep",
   "autotag-item-run",
 ];
@@ -41,6 +43,15 @@ function run(win: _ZoteroTypes.MainWindow) {
   });
 }
 
+function openManager(win: _ZoteroTypes.MainWindow) {
+  try {
+    openTagManager(win);
+  } catch (e: any) {
+    debug(`tag manager failed: ${e?.stack || e}`);
+    (win as any).alert?.(`Autotag Tag Manager failed\n\n${e?.message || e}`);
+  }
+}
+
 export function registerAutotagMenus(
   win: _ZoteroTypes.MainWindow,
   opts: { tools: boolean; item: boolean },
@@ -67,6 +78,9 @@ export function registerAutotagMenus(
       sep,
       item(doc, "autotag-run-menuitem", "Autotag: Tag Selected Items", () =>
         run(win),
+      ),
+      item(doc, "autotag-manager-menuitem", "Autotag: Tag Manager...", () =>
+        openManager(win),
       ),
       item(doc, "autotag-settings-menuitem", "Autotag: Settings...", () =>
         openAutotagSettings(win),

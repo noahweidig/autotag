@@ -58,6 +58,11 @@ pref("tags.maxWords", 4);
 pref("tags.maxLength", 40);
 pref("tags.blacklist", "");
 pref("tags.replacements", "");
+pref("cleanup.maxTagsPerRequest", 150);
+pref("cleanup.maxRequests", 3);
+pref("cleanup.anchorCount", 20);
+pref("cleanup.reviewed", "");
+pref("cleanup.ignored", "");
 pref("seedKeywords", "");
 pref("finalPrompt", "");
 

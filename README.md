@@ -20,6 +20,7 @@ It is built for people who rely on Zotero every day and have reached the point w
 - **Tag cleanup**: strips slashes and weird characters, merges duplicates (case, spacing, plurals), reuses the spelling of existing library tags, case/separator styles, word and length limits, blacklist, and replacement rules, with a live preview.
 - More options: items per request, temperature, max tokens, timeout, JSON mode, tag language, max tags, prefix, marker tag, automatic tag type, skip already-tagged items, seed-only mode, share top library tags with the model, DOI as input, prompt presets.
 - Item right-click menu entry and progress notifications.
+- **Tag Manager** (Tools > Autotag: Tag Manager): find and merge duplicate tags across the whole library, fix formatting with your tag settings, search/rename/merge/delete tags in bulk, and undo each change. Duplicate detection (case, plurals, typos, word order, abbreviations) runs locally. An optional AI scan finds tags with the same meaning. It sends tag names only, in capped batches (default 150 tags per request, 3 requests per scan), remembers tags it already checked, and shows the estimated tokens before you run it, so it works on free API tiers.
 
 ## Why this exists
 
@@ -119,7 +120,7 @@ The goal is to remove repetitive and fragile manual work.
 To avoid confusion, Autotag does not:
 
 • Replace Zotero’s native tagging system  
-• Modify or delete your existing tags  
+• Change or delete your existing tags unless you confirm it in the Tag Manager  
 • Claim perfect or authoritative tagging  
 • Act as a recommendation engine or writing assistant
 

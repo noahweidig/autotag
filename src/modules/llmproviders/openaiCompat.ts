@@ -57,6 +57,10 @@ export function makeOpenAICompatProvider(id: string): LLMProvider {
       return String(content);
     },
 
+    generateJson(prompt) {
+      return this.generateTags(prompt);
+    },
+
     async listModels() {
       const base = getBaseUrlForProvider(id);
       if (!base) throw new Error("Base URL not set");
