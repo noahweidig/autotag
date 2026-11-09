@@ -16,7 +16,8 @@ import { getItemMetadata } from "./autotagItems";
 import { getLocaleID } from "../utils/locale";
 
 const PANE_ID = "autotag-suggestions";
-const ICON = "chrome://autotag/content/icons/autotag-48.png";
+const ICON = "chrome://autotag/content/icons/autotag-glyph-light.svg";
+const ICON_DARK = "chrome://autotag/content/icons/autotag-glyph-dark.svg";
 
 type Chip = { tag: string; source: string };
 type State = {
@@ -220,10 +221,12 @@ export function registerItemPaneSection(): void {
     header: {
       l10nID: l10n("item-section-suggest-head-text"),
       icon: ICON,
+      darkIcon: ICON_DARK,
     },
     sidenav: {
       l10nID: l10n("item-section-suggest-sidenav-tooltip"),
       icon: ICON,
+      darkIcon: ICON_DARK,
     },
     onItemChange: ({ item, setEnabled }: any) => {
       setEnabled(!!item?.isRegularItem?.());
