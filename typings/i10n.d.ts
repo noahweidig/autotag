@@ -3,14 +3,8 @@
 /* eslint-disable */
 // @ts-nocheck
 export type FluentMessageId =
-  | 'autotag-run-menu'
-  | 'autotag-settings-menu'
-  | 'item-info-row-example-label'
-  | 'item-section-example1-head-text'
-  | 'item-section-example1-sidenav-tooltip'
-  | 'item-section-example2-button-tooltip'
-  | 'item-section-example2-head-text'
-  | 'item-section-example2-sidenav-tooltip'
+  | 'item-section-suggest-head-text'
+  | 'item-section-suggest-sidenav-tooltip'
   | 'menuitem-filemenulabel'
   | 'menuitem-label'
   | 'menuitem-submenulabel'

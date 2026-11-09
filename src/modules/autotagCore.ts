@@ -160,7 +160,7 @@ async function getLibraryTags(libraryID: number, topN: number) {
 
 /* ---------- apply ---------- */
 
-async function applyTags(
+export async function applyTags(
   itemsByKey: Map<string, any>,
   finalTags: Map<string, string[]>,
   t: TagOptions,
@@ -191,13 +191,17 @@ async function applyTags(
   return { items: itemCount, tags: tagCount };
 }
 
+export type ProgressLike = {
+  update(text: string, percent?: number): void;
+};
+
 /* ---------- AI step ---------- */
 
 async function runAi(
   metas: ItemMetadata[],
   t: TagOptions,
   lib: { all: string[]; top: string[] },
-  progress: Progress,
+  progress: ProgressLike,
 ): Promise<{ tags: Map<string, string[]>; errors: string[] }> {
   const provider = getLLMProvider();
   const g = getGenerationOptions();
@@ -248,6 +252,93 @@ async function runAi(
     for (const r of out || [])
       tags.set(r.key, [...(tags.get(r.key) || []), ...r.tags]);
   return { tags, errors };
+}
+
+/* ---------- suggestion engine (no UI) ---------- */
+
+export type Collected = {
+  results: Map<string, string[]>;
+  sourcesFor: (key: string, tags: string[]) => Record<string, string>;
+  errors: string[];
+  ctx: { libraryTags: string[]; seeds: string[] };
+};
+
+export async function collectSuggestions(
+  metas: ItemMetadata[],
+  libraryID: number,
+  mode: TagMode,
+  t: TagOptions,
+  progress: ProgressLike,
+): Promise<Collected> {
+  const src = getSourceOptions();
+  const useAi = mode === "ai" || mode === "both";
+  const useFree = mode === "free" || mode === "both";
+  const lib =
+    t.reuseLibraryTags || t.mergeWithLibrary
+      ? await getLibraryTags(libraryID, t.libraryVocabLimit)
+      : { all: [], top: [] };
+  const seeds = getSeedKeywords()
+    .split(/[,\n;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  // raw suggestions per item, tagged with where they came from
+  const raw = new Map<string, { tag: string; source: SourceId | "ai" }[]>();
+  const errors: string[] = [];
+  const push = (key: string, tag: string, source: SourceId | "ai") => {
+    const l = raw.get(key) || [];
+    l.push({ tag, source });
+    raw.set(key, l);
+  };
+
+  if (useAi) {
+    const ai = await runAi(metas, t, lib, progress);
+    errors.push(...ai.errors);
+    for (const [k, tags] of ai.tags) for (const x of tags) push(k, x, "ai");
+  }
+  if (useFree) {
+    const free = await suggestFromSources(metas, src, (text, pct) =>
+      progress.update(text, pct),
+    );
+    errors.push(...free.errors);
+    for (const [k, l] of free.suggestions)
+      for (const s of l) push(k, s.tag, s.source);
+  }
+
+  const results = new Map<string, string[]>();
+  const provenance = new Map<string, Map<string, string>>();
+  const ctx = { libraryTags: lib.all, seeds };
+  for (const [key, list] of raw) {
+    list.sort(
+      (a, b) => SOURCE_ORDER.indexOf(a.source) - SOURCE_ORDER.indexOf(b.source),
+    );
+    const cleaned = cleanTagList(
+      list.map((x) => x.tag),
+      t,
+      ctx,
+    );
+    if (!cleaned.length) continue;
+    const byKey = new Map<string, string>();
+    for (const x of list) {
+      const one = cleanTagList([x.tag], { ...t, maxPerItem: 0 }, ctx)[0];
+      const k = one ? canonicalKey(one) : "";
+      if (k && !byKey.has(k))
+        byKey.set(k, x.source === "ai" ? "AI" : SOURCE_LABELS[x.source]);
+    }
+    results.set(key, cleaned);
+    provenance.set(key, byKey);
+  }
+  const sourcesFor = (key: string, tags: string[]) => {
+    const m = provenance.get(key);
+    const out: Record<string, string> = {};
+    for (const tag of tags) {
+      const label = m?.get(canonicalKey(tag));
+      if (label) out[tag.toLowerCase()] = label;
+    }
+    return out;
+  };
+
+  return { results, sourcesFor, errors, ctx };
 }
 
 /* ---------- entry points ---------- */
@@ -332,72 +423,13 @@ export async function runAutotagForSelection(
     for (const it of targets) metas.push(await getItemMetadata(it));
     const itemsByKey = new Map<string, any>(targets.map((it) => [it.key, it]));
 
-    const libraryID = targets[0].libraryID;
-    const lib =
-      t.reuseLibraryTags || t.mergeWithLibrary
-        ? await getLibraryTags(libraryID, t.libraryVocabLimit)
-        : { all: [], top: [] };
-    const seeds = getSeedKeywords()
-      .split(/[,\n;]+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    // raw suggestions per item, tagged with where they came from
-    const raw = new Map<string, { tag: string; source: SourceId | "ai" }[]>();
-    const errors: string[] = [];
-    const push = (key: string, tag: string, source: SourceId | "ai") => {
-      const l = raw.get(key) || [];
-      l.push({ tag, source });
-      raw.set(key, l);
-    };
-
-    if (useAi) {
-      const ai = await runAi(metas, t, lib, progress);
-      errors.push(...ai.errors);
-      for (const [k, tags] of ai.tags) for (const x of tags) push(k, x, "ai");
-    }
-    if (useFree) {
-      const free = await suggestFromSources(metas, src, (text, pct) =>
-        progress!.update(text, pct),
-      );
-      errors.push(...free.errors);
-      for (const [k, l] of free.suggestions)
-        for (const s of l) push(k, s.tag, s.source);
-    }
-
-    const results = new Map<string, string[]>();
-    const provenance = new Map<string, Map<string, string>>();
-    const ctx = { libraryTags: lib.all, seeds };
-    for (const [key, list] of raw) {
-      list.sort(
-        (a, b) =>
-          SOURCE_ORDER.indexOf(a.source) - SOURCE_ORDER.indexOf(b.source),
-      );
-      const cleaned = cleanTagList(
-        list.map((x) => x.tag),
-        t,
-        ctx,
-      );
-      if (!cleaned.length) continue;
-      const byKey = new Map<string, string>();
-      for (const x of list) {
-        const one = cleanTagList([x.tag], { ...t, maxPerItem: 0 }, ctx)[0];
-        const k = one ? canonicalKey(one) : "";
-        if (k && !byKey.has(k))
-          byKey.set(k, x.source === "ai" ? "AI" : SOURCE_LABELS[x.source]);
-      }
-      results.set(key, cleaned);
-      provenance.set(key, byKey);
-    }
-    const sourcesFor = (key: string, tags: string[]) => {
-      const m = provenance.get(key);
-      const out: Record<string, string> = {};
-      for (const tag of tags) {
-        const label = m?.get(canonicalKey(tag));
-        if (label) out[tag.toLowerCase()] = label;
-      }
-      return out;
-    };
+    const { results, sourcesFor, errors, ctx } = await collectSuggestions(
+      metas,
+      targets[0].libraryID,
+      mode,
+      t,
+      progress,
+    );
 
     let final = results;
     if (results.size && isReviewEnabled()) {

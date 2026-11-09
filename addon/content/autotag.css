@@ -10,3 +10,50 @@ menuitem.autotag-menuitem .menu-iconic-icon {
   width: 16px;
   height: 16px;
 }
+
+.autotag-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 8px 8px;
+}
+.autotag-section-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.autotag-section-msg {
+  font-size: 12px;
+  opacity: 0.8;
+}
+.autotag-section-msg.err {
+  color: #cf222e;
+  opacity: 1;
+}
+.autotag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.autotag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  font: inherit;
+  cursor: pointer;
+}
+.autotag-chip:hover:not([disabled]) {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+.autotag-chip-plus {
+  opacity: 0.6;
+}
+.autotag-chip-src {
+  margin-left: 6px;
+  font-size: 0.75em;
+  opacity: 0.6;
+}

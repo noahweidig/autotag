@@ -84,6 +84,7 @@ declare namespace _ZoteroTypes {
       "ui.toolsMenu": boolean;
       "ui.itemMenu": boolean;
       "ui.tab": string;
+      "ui.itemPane": boolean;
     };
   }
 }

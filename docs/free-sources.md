@@ -24,3 +24,7 @@ By default, offline extraction runs only for items where the lookups found nothi
 - Offline extraction is plain phrase scoring. Expect weaker results than an AI model, especially with short abstracts.
 
 Results go through the same tag cleanup, library spelling reuse, seed keywords and review window as AI tags. Each tag in the review window shows where it came from.
+
+## Item pane
+
+The item pane has an **Autotag suggestions** section for regular items. Click **Suggest (free)** or **Suggest (AI)**, then click a tag to add it, or **Add all**. Nothing is looked up until you click. Turn the section off under Settings > General (restart Zotero).

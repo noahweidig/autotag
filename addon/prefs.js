@@ -83,3 +83,4 @@ pref("workflow.debug", false);
 pref("ui.toolsMenu", true);
 pref("ui.itemMenu", true);
 pref("ui.tab", "general");
+pref("ui.itemPane", true);
