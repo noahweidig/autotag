@@ -1,12 +1,12 @@
 /*
- * Regenerate the docs favicon set from the icon artwork (Lucide "tags", ISC). Needs Playwright and Python 3 (ICO packing). Run from the repo root:
+ * Regenerate the docs favicon set from the icon artwork (Lucide "tags", ISC). Needs Playwright. Run from the repo root:
  *   node scripts/make-favicons.cjs
  * Writes docs/favicon.svg, favicon.ico, PNGs, apple-touch-icon.png, android-chrome and
  * maskable icons, mstile, safari-pinned-tab.svg, site.webmanifest and browserconfig.xml.
  */
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { Buffer } = require('buffer');
 const { chromium } = require('playwright');
 
 const out = path.join(__dirname, '..', 'docs');
