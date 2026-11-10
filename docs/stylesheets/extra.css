@@ -97,3 +97,30 @@
 .at-stats small {
   color: var(--md-default-fg-color--light);
 }
+.at-hero {
+  position: relative;
+  isolation: isolate;
+  --at-grid: rgb(20 25 40 / 6%);
+  --at-glow: color-mix(in srgb, var(--md-primary-fg-color) 20%, transparent);
+}
+[data-md-color-scheme="slate"] .at-hero {
+  --at-grid: rgb(255 255 255 / 6%);
+  --at-glow: color-mix(in srgb, var(--md-primary-fg-color) 42%, transparent);
+}
+.at-hero::before,
+.at-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.at-hero::before {
+  background: radial-gradient(60% 60% at 50% 0%, var(--at-glow), transparent 70%);
+}
+.at-hero::after {
+  background:
+    linear-gradient(var(--at-grid) 1px, transparent 1px) 0 0 / 64px 64px,
+    linear-gradient(90deg, var(--at-grid) 1px, transparent 1px) 0 0 / 64px 64px;
+  mask-image: radial-gradient(ellipse 70% 80% at 50% 0%, black 10%, transparent 75%);
+}
