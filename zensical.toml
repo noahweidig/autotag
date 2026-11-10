@@ -2,7 +2,7 @@
 site_name = "Autotag"
 site_description = "Tag your Zotero library with an LLM, review every tag before it lands, and merge duplicate tags across the whole library."
 site_author = "Noah Weidig"
-site_url = "https://noahweidig.github.io/autotag/"
+site_url = "https://noahweidig.com/autotag/"
 repo_url = "https://github.com/noahweidig/autotag"
 repo_name = "noahweidig/autotag"
 copyright = "Autotag is free and open source. AGPL-3.0-or-later."
