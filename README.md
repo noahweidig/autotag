@@ -1,6 +1,6 @@
 # Autotag for Zotero
 
-**Docs: https://noahweidig.github.io/autotag/**
+**Docs: https://noahweidig.com/autotag/**
 
 Your Zotero library keeps growing.
 Your mental map of it quietly collapses.
