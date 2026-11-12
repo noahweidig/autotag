@@ -127,7 +127,10 @@ button.primary {
   border-color: var(--accent);
 }
 button {
+  box-sizing: border-box;
+  margin: 0;
   padding: 4px 14px;
+  line-height: 1.2;
 }
 
 .chip .src {
