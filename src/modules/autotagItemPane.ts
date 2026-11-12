@@ -74,6 +74,8 @@ function draw(v: View): void {
   const mkBtn = (label: string, onClick: () => void, disabled = false) => {
     const b = el(doc, "button", "autotag-btn", label) as HTMLButtonElement;
     b.type = "button";
+    b.style.cssText =
+      "box-sizing:border-box;margin:0;padding:4px 10px;line-height:1.2;min-height:0;display:inline-flex;align-items:center;justify-content:center";
     b.disabled = disabled || st.busy;
     b.addEventListener("click", onClick);
     return b;
