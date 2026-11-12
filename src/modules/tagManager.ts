@@ -462,7 +462,7 @@ export function openTagManager(win: any): void {
     const w = win.openDialog(
       "chrome://autotag/content/tagmanager.xhtml",
       "autotag-tagmanager",
-      "chrome,centerscreen,resizable,width=1000,height=720",
+      "chrome,centerscreen,resizable,dialog=no,minimizable=yes,width=1000,height=720",
       api,
     );
     api.setWindow(w);

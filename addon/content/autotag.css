@@ -97,3 +97,13 @@ menuitem.autotag-menuitem .menu-iconic-icon {
   background: color-mix(in srgb, currentColor 14%, transparent);
   opacity: 0.75;
 }
+
+.autotag-btn {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 4px 10px;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
