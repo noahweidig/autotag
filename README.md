@@ -13,6 +13,10 @@ It is built for people who rely on Zotero every day and have reached the point w
 
 ## What's NEW
 
+### v0.2.1
+
+- Add-on icon is now Zotero's own "tag" icon.
+
 ### v0.2.0
 
 - **Suggest from your own library, no AI.** Each item's title and abstract is compared with your already-tagged items (TF-IDF nearest neighbours) and it proposes the tags its closest matches carry, so suggestions use your vocabulary. Offline. Needs a few tagged items to start (30 by default) and works best with a few hundred.
