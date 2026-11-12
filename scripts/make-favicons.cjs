@@ -1,5 +1,5 @@
 /*
- * Regenerate the docs favicon set from the icon artwork (Zotero "tag" icon, AGPL-3.0; see NOTICE). Needs Playwright. Run from the repo root:
+ * Regenerate the docs favicon set from the icon artwork (Zotero "magic-wand" icon, AGPL-3.0; see NOTICE). Needs Playwright. Run from the repo root:
  *   node scripts/make-favicons.cjs
  * Writes docs/favicon.svg, favicon.ico, PNGs, apple-touch-icon.png, android-chrome and
  * maskable icons, mstile, safari-pinned-tab.svg, site.webmanifest and browserconfig.xml.
@@ -11,14 +11,14 @@ const { chromium } = require('playwright');
 
 const out = path.join(__dirname, '..', 'docs');
 const BLUE = '#5B5CF0';
-const GLYPH = `<path d="M6.086 1L14.586 9.5L9.5 14.586L1 6.086V1H6.086ZM6.5 0H0.5C0.367392 0 0.240215 0.0526784 0.146447 0.146447C0.0526784 0.240215 0 0.367392 0 0.5L0 6.5L9.146 15.646C9.23976 15.7397 9.36692 15.7924 9.4995 15.7924C9.63208 15.7924 9.75924 15.7397 9.853 15.646L15.646 9.853C15.7397 9.75924 15.7924 9.63208 15.7924 9.4995C15.7924 9.36692 15.7397 9.23976 15.646 9.146L6.5 0ZM4 2.75C3.75277 2.75 3.5111 2.82331 3.30554 2.96066C3.09998 3.09801 2.93976 3.29324 2.84515 3.52165C2.75054 3.75005 2.72579 4.00139 2.77402 4.24386C2.82225 4.48634 2.9413 4.70907 3.11612 4.88388C3.29093 5.0587 3.51366 5.17775 3.75614 5.22598C3.99861 5.27421 4.24995 5.24946 4.47835 5.15485C4.70676 5.06024 4.90199 4.90002 5.03934 4.69446C5.17669 4.4889 5.25 4.24723 5.25 4C5.25 3.66848 5.1183 3.35054 4.88388 3.11612C4.64946 2.8817 4.33152 2.75 4 2.75Z"/>`;
+const GLYPH = `<path fill-rule="evenodd" d="M9.9999 0L9.4999 1.5L7.99991 2V2.5L9.4999 3L9.9999 4.5H10.4999L10.9999 3L12.4999 2.5V2L10.9999 1.5L10.4999 0H9.9999ZM17.4999 7.5L16.9999 9L15.4999 9.5V10L16.9999 10.5L17.4999 12H17.9999L18.4999 10.5L19.9999 10V9.5L18.4999 9L17.9999 7.5H17.4999ZM16.9999 1.5L17.4999 0H17.9999L18.4999 1.5L19.9999 2V2.5L18.4999 3L17.9999 4.5H17.4999L16.9999 3L15.4999 2.5V2L16.9999 1.5ZM13.9999 4.76777L11.3838 7.38388L12.616 8.61612L15.2321 6L13.9999 4.76777ZM1.76767 17L4.38379 14.3839L5.61602 15.6161L2.99991 18.2322L1.76767 17ZM0.883789 16.1161L13.116 3.88388C13.6042 3.39573 14.3956 3.39573 14.8838 3.88388L16.116 5.11612C16.6042 5.60427 16.6042 6.39573 16.116 6.88388L3.88379 19.1161C3.39563 19.6043 2.60418 19.6043 2.11602 19.1161L0.883789 17.8839C0.395634 17.3957 0.395634 16.6043 0.883789 16.1161Z"/>`;
 
 // A tile: rounded or full-bleed square in the brand blue, white glyph scaled to `scale`
 const tile = ({ radius, scale, size = 24 }) => {
 	const offset = (24 - 24 * scale) / 2;
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none">`
 		+ `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4F7CFF"/><stop offset="1" stop-color="#7A3CF0"/></linearGradient></defs><rect width="24" height="24" rx="${radius}" fill="url(#g)"/>`
-		+ `<g transform="translate(${offset} ${offset}) scale(${scale})" fill="#FFFFFF"><g transform="scale(1.5)">${GLYPH}</g></g></svg>\n`;
+		+ `<g transform="translate(${offset} ${offset}) scale(${scale})" fill="#FFFFFF"><g transform="scale(1.2)">${GLYPH}</g></g></svg>\n`;
 };
 
 const write = (name, data) => fs.writeFileSync(path.join(out, name), data);
@@ -26,7 +26,7 @@ const write = (name, data) => fs.writeFileSync(path.join(out, name), data);
 (async () => {
 	write('favicon.svg', tile({ radius: 5, scale: 0.65 }));
 	// Single-colour mask for Safari pinned tabs
-	write('safari-pinned-tab.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="#000">${GLYPH}</svg>\n`);
+	write('safari-pinned-tab.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="#000">${GLYPH}</svg>\n`);
 
 	// name, pixel size, tile options, transparent corners
 	const pngs = [

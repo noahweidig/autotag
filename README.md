@@ -13,9 +13,9 @@ It is built for people who rely on Zotero every day and have reached the point w
 
 ## What's NEW
 
-### v0.2.1
+### v0.2.2
 
-- Add-on icon is now Zotero's own "tag" icon.
+- Add-on icon is now Zotero's own "magic-wand" icon, sized like the other sidebar icons. More padding below the item pane buttons.
 
 ### v0.2.0
 
